@@ -1,162 +1,263 @@
-// src/app/(WebPage)/(Head_Footer)/Header/headerFooter.tsx
 "use client";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
+const API = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 const HeaderFooter = () => {
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
-  const [scrolled, setScrolled] = useState(false);
+  const [user, setUser]           = useState<any>(null);
+  const [scrolled, setScrolled]   = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [cartCount, setCartCount]         = useState(0);
+  const loadUser = useCallback(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (!stored) { setUser(null); return; }
+      const parsed = JSON.parse(stored);
+      const validRoles = ["farmer", "buyer", "agent", "dpartner", "admin"];
+      if (parsed && validRoles.includes(parsed.role)) {
+        setUser(parsed);
+      } else { 
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  // ✅ Fetch wishlist count from backend
+  const fetchWishlistCount = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) { setWishlistCount(0); return; }
+    try {
+      const res  = await fetch(`${API}/wishlist`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setWishlistCount(Array.isArray(data) ? data.length : 0);
+    } catch {
+      setWishlistCount(0);
+    }
+  }, []);
+
+const fetchCartCount = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) { setCartCount(0); return; }
+    try {
+      const res  = await fetch(`${API}/cart`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setCartCount(Array.isArray(data) ? data.length : 0);
+    } catch {
+      setCartCount(0);
+    }
+  }, []);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-
+    loadUser();
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [pathname]); // pathname change pe re-run — login/logout ke baad update ho
+    window.addEventListener("storage", loadUser);
+    window.addEventListener("authChange", loadUser);
+    window.addEventListener("cartUpdate",     fetchCartCount);
+    window.addEventListener("wishlistUpdate", fetchWishlistCount);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("storage", loadUser);
+      window.removeEventListener("authChange", loadUser);
+      window.removeEventListener("cartUpdate",     fetchCartCount);
+      window.removeEventListener("wishlistUpdate", fetchWishlistCount);
+    };
+  }, [loadUser, fetchCartCount, fetchWishlistCount]);
+
+  useEffect(() => {
+    loadUser();
+  }, [pathname]);
+
+  useEffect(() => {
+    if (user) {
+      fetchWishlistCount();
+      fetchCartCount();
+    } else {
+      setWishlistCount(0);
+      setCartCount(0);
+    }
+  }, [user, pathname]);
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("wishlist");
     setUser(null);
+    setWishlistCount(0);
+    setCartCount(0);
+    window.dispatchEvent(new Event("authChange"));
     router.push("/");
   };
 
-  const isActive = (path: string) =>
-    pathname === path ? "nav-link active fw-semibold text-success" : "nav-link text-dark";
+  const nav = (path: string) =>
+    pathname === path
+      ? "nav-link fw-semibold text-success"
+      : "nav-link text-dark";
+
+  const isFarmer          = user?.role === "farmer";
+  const isAgent           = user?.role === "agent";
+  const isDeliveryPartner = user?.role === "dpartner";
+  const isBuyer           = user?.role === "buyer";
+  const isAdmin           = user?.role === "admin";
+  const isGuest           = !user;
+
+  const roleBadgeClass =
+    isFarmer            ? "bg-success"
+    : isAgent           ? "bg-warning text-dark"
+    : isBuyer           ? "bg-danger"
+    : isDeliveryPartner ? "bg-info"
+    : isAdmin           ? "bg-danger"
+    : "bg-primary";
+
+  // ✅ Show wishlist + cart for buyers, farmers, dpartners
+  const showWishlistCart = isBuyer || isFarmer || isDeliveryPartner;
 
   return (
     <>
-    <nav className={`navbar navbar-expand-lg bg-white sticky-top ${scrolled ? "shadow" : "border-bottom"}`}
-      style={{ transition: "box-shadow 0.3s" }}>
-      <div className="container">
-
-        {/* Logo */}
+      <nav className={`navbar navbar-expand-lg px-md-5 py-2 sticky-top bg-white ${scrolled ? "shadow-sm" : ""}`}
+        style={{ transition: "box-shadow 0.2s", borderBottom: "1px solid #e9ecef", zIndex: 1030 }}>
+      
+        {/* ── Logo ── */}
         <Link href="/" className="navbar-brand d-flex align-items-center gap-2 text-decoration-none">
-          <span style={{ fontSize: 28 }}>🌱</span>
-          <span className="fw-bold text-success fs-5">demo</span>
+          <span style={{ fontSize: 26 }}>🌱</span>
+          <span className="fw-bold text-success fs-5">kisanmilan</span>
         </Link>
 
-        {/* Mobile Toggle */}
-        <button className="navbar-toggler border-0" type="button"
-          data-bs-toggle="collapse" data-bs-target="#navbarNav">
-          <span className="navbar-toggler-icon" />
-        </button>
-
+        {/* ── Mobile Toggle ── */}
+        <button className="btn btn-sm navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"> <span className="navbar-toggler-icon" /></button>
         <div className="collapse navbar-collapse" id="navbarNav">
+          
+          {/* ── Center Nav Links ── */}
+          <ul className="navbar-nav mx-auto gap-1">
+            {!isAgent && (
+              <li className="nav-item">
+                <Link href="/Product" className={nav("/Product")}>🛒 Products</Link>
+              </li>
+            )}
 
-          {/* Center Links */}
-        <ul className="navbar-nav mx-auto gap-1">
+            <li className="nav-item">
+              <Link href="/Rates" className={nav("/Rates")}>
+                {isAgent ? "🏪 Add Rate" : "📊 Mandi Rates"}
+              </Link>
+            </li>
 
-  {/* Guest + Buyer + Farmer — Products */}
-  {user?.role !== "agent" && (
-    <li className="nav-item">
-      <Link href="/Product" className={isActive("/Product")}>
-        🛒 Products
-      </Link>
-    </li>
-  )}
+            {(isBuyer || isFarmer) && (
+              <li className="nav-item">
+                <Link href="/Orders" className={nav("/Orders")}>📦 Orders</Link>
+              </li>
+            )}
 
-  {/* Buyer + Farmer — Mandi Rates */}
-  {(user?.role === "buyer" || user?.role === "farmer" || !user) && (
-    <li className="nav-item">
-      <Link href="/Rates" className={isActive("/Rates")}>
-        📊 Mandi Rates
-      </Link>
-    </li>
-  )}
+            {isFarmer && (
+              <li className="nav-item">
+                <Link href="/ProductAdd" className={nav("/ProductAdd")}>➕ Add Product</Link>
+              </li>
+            )}
 
-  {/* Agent — Agent Rates */}
-  {user?.role === "agent" && (
-    <li className="nav-item">
-      <Link href="/Rates" className={isActive("/Rates")}>
-        🏪 Agent Rates
-      </Link>
-    </li>
-  )}
+            {isAgent && (
+              <>
+                <li className="nav-item">
+                  <Link href="/Dashboard" className={nav("/Dashboard")}>📊 Dashboard</Link>
+                </li>
+                <li className="nav-item">
+                  <Link href="/Product" className={nav("/Product")}>🔍 View Products</Link>
+                </li>
+              </>
+            )}
 
-  {/* Logged in — My Orders */}
-  {user && (
-    <li className="nav-item">
-      <Link href="/Orders" className={isActive("/Orders")}>
-        📦 My Orders
-      </Link>
-    </li>
-  )}
+            {isDeliveryPartner && (
+              <>
+                <li className="nav-item">
+                  <Link href="/Orders" className={nav("/Orders")}>📦 Assigned Orders</Link>
+                </li>
+                <li className="nav-item">
+                  <Link href="/Delivery" className={nav("/Delivery")}>🚚 Deliveries</Link>
+                </li>
+              </>
+            )}
+          </ul>
 
-  {/* Farmer — Add Product */}
-  {user?.role === "farmer" && (
-    <li className="nav-item">
-      <Link href="/ProductAdd" className={isActive("/ProductAdd")}>
-        ➕ Add Product
-      </Link>
-    </li>
-  )}
+          {/* ── Right Side ── */}
+          <div className="d-flex align-items-center gap-3">
 
-  {/* Agent — Add Product + Rate Manage */}
-  {user?.role === "agent" && (
-    <>
-      <li className="nav-item">
-        <Link href="/ProductAdd" className={isActive("/ProductAdd")}>
-          ➕ Add Product
-        </Link>
-      </li>
-    </>
-  )}
+            {/* ✅ Wishlist Icon with badge */}
+            {showWishlistCart && user && (
+              <>
+                <Link href="/Wishlist" className="position-relative text-decoration-none" title="Wishlist" style={{ lineHeight: 1 }}>
+                  <span style={{ fontSize: 22 }}>❤️</span>
+                  
+                  {wishlistCount > 0 && (
+                    <span className="position-absolute badge rounded-pill bg-danger" 
+                    style={{   top: -6, right: -8,   fontSize: 10, minWidth: 18, height: 18,   display: "flex", alignItems: "center", justifyContent: "center",   padding: "0 4px", }}>
+                      {wishlistCount > 99 ? "99+" : wishlistCount}
+                    </span>
+                  )}
+                </Link>
 
-</ul>
+                {/* ✅ Cart Icon with badge */}
+                <Link  href="/Cart"  className="position-relative text-decoration-none"  title="Cart"  style={{ lineHeight: 1 }}>
+                  <span style={{ fontSize: 22 }}>🛒</span>
+                  {cartCount > 0 && (
+                    <span  className="position-absolute badge rounded-pill bg-success" 
+                     style={{top: -6, right: -8,fontSize: 10, minWidth: 18, height: 18,  display: "flex", alignItems: "center", justifyContent: "center",    padding: "0 4px",  }}>
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
+                </Link>
+              </>
+            )}
 
-          {/* Right Side */}
-          <div className="d-flex align-items-center gap-2">
+            {/* ── User Dropdown / Login ── */}
             {user ? (
               <div className="dropdown">
-                <button
-                  className="btn btn-outline-success dropdown-toggle d-flex align-items-center gap-2"
-                  data-bs-toggle="dropdown">
+                <button  className="btn btn-outline-success btn-sm dropdown-toggle d-flex align-items-center gap-2"  data-bs-toggle="dropdown">
                   <div className="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold"
-                    style={{ width: 32, height: 32, fontSize: 14 }}>
+                    style={{ width: 24, height: 24, fontSize: 12, flexShrink: 0 }}>
                     {user.name?.charAt(0).toUpperCase()}
                   </div>
                   <span className="d-none d-lg-inline">{user.name?.split(" ")[0]}</span>
                 </button>
-                <ul className="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-1">
+
+                <ul className="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-1" style={{ minWidth: 220 }}>
+                  {/* User Info */}
                   <li>
                     <div className="dropdown-item-text px-3 py-2">
-                      <div className="fw-semibold">{user.name}</div>
-                      <small className="text-muted">{user.email}</small>
-                      <div>
-                   <span className={`badge ${user.role === "farmer" ? "bg-success" :
-                     user.role === "agent"  ? "bg-warning text-dark" : "bg-primary"
-                     } mt-1`}> {user.role} </span>
+                      <div className="d-flex align-items-center gap-2 mb-1">
+                        <div className="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                          style={{ width: 36, height: 36, fontSize: 14 }}>
+                          {user.name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="fw-semibold" style={{ fontSize: 14 }}>{user.name}</div>
+                          <small className="text-muted">{user.email}</small>
+                        </div>
                       </div>
+                      <span className={`badge ${roleBadgeClass} mt-1`} style={{ fontSize: 11 }}>
+                        {user.role?.toUpperCase()}
+                      </span>
                     </div>
                   </li>
                   <li><hr className="dropdown-divider my-1" /></li>
-                  <li>
-                    <Link href="/Profile" className="dropdown-item py-2">
-                      👤 Profile
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/Dashboard" className="dropdown-item py-2">
-                      📊 Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/Orders" className="dropdown-item py-2">
-                      📦 My Orders
-                    </Link>
-                  </li>
-                  {user.role === "farmer" && (
-                    <li>
-                      <Link href="/AddProduct" className="dropdown-item py-2">
-                        ➕ Add Product
-                      </Link>
-                    </li>
+                  <li><Link href="/Profile"   className="dropdown-item py-2">👤 Profile</Link></li>
+                  <li><Link href="/Dashboard" className="dropdown-item py-2">📊 Dashboard</Link></li>
+
+                  {showWishlistCart && (
+                    <>
+                      <li><Link href="/Orders" className="dropdown-item py-2">📦 My Orders</Link></li>
+                    </>
+                  )}
+                  {isFarmer && (
+                    <li><Link href="/ProductAdd" className="dropdown-item py-2">➕ Add Product</Link></li>
+                  )}
+                  {isDeliveryPartner && (
+                    <li><Link href="/Delivery" className="dropdown-item py-2">🚚 My Deliveries</Link></li>
+                  )}
+                  {isAdmin && (
+                    <li><Link href="/AdminDashboard" className="dropdown-item py-2">🔧 Admin Panel</Link></li>
                   )}
                   <li><hr className="dropdown-divider my-1" /></li>
                   <li>
@@ -164,23 +265,17 @@ const HeaderFooter = () => {
                       🚪 Logout
                     </button>
                   </li>
-                </ul>
+                </ul> 
               </div>
             ) : (
               <div className="d-flex gap-2">
-                <Link href="/Login" className="btn btn-outline-success btn-sm px-3">
-                  Login
-                </Link>
-                <Link href="/Register" className="btn btn-success btn-sm px-3">
-                  Register
-                </Link>
+                <Link href="/Login"    className="btn btn-outline-success btn-sm px-3">Login</Link>
+                <Link href="/Register" className="btn btn-success btn-sm px-3">Register</Link>
               </div>
             )}
           </div>
-
         </div>
-      </div>
-    </nav>
+      </nav>
     </>
   );
 };

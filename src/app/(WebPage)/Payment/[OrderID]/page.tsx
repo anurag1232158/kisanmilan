@@ -22,7 +22,7 @@ export default function PaymentPage({ params }: { params: Promise<{ OrderID: str
     if (!stored) { router.push("/Login"); return; }
     setUser(JSON.parse(stored));
 
-    fetch(`http://localhost:5000/order/${OrderID}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/order/${OrderID}`)
       .then(res => res.json())
       .then(data => setOrder(data));
   }, [OrderID]);
@@ -56,7 +56,7 @@ export default function PaymentPage({ params }: { params: Promise<{ OrderID: str
       const token = localStorage.getItem("token");
 
       // 1. Payment record banao
-      const payRes = await fetch("http://localhost:5000/payment", {
+      const payRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -78,7 +78,7 @@ export default function PaymentPage({ params }: { params: Promise<{ OrderID: str
       if (!payRes.ok) throw new Error(payData.error);
 
       // 2. Order status "confirmed" karo
-      await fetch(`http://localhost:5000/order/${OrderID}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/order/${OrderID}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

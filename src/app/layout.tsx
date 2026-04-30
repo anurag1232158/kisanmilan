@@ -1,6 +1,5 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import "../../public/assets/css/admin.css";
 import "../../public/assets/css/bootstrap.min.css";
 import "../../public/assets/css/style.css";
 import "../../public/assets/css/font_awesome.css";
@@ -23,7 +22,7 @@ export default function RootLayout({ children, }: { children: React.ReactNode; }
     <html lang="en" suppressHydrationWarning data-theme="light">
       <body style={{ overflowX: "hidden", top: 0 }}>
         <AuthProvider>
-   
+         
           {/* {style.css & animation.css */}
           <AuthWrapper>{children}</AuthWrapper>
           {/* script.js & animation.js */}
@@ -35,3 +34,4 @@ export default function RootLayout({ children, }: { children: React.ReactNode; }
     </html>
   );
 }
+ 

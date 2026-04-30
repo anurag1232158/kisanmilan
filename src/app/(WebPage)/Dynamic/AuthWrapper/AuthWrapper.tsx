@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useSessionTimeout } from "./Timeout/UseSessionTimeout";
+
 
 const AdminOnlyWrapper = dynamic(
   () => import("../../../(AdminPage)/Dynamic/AdminOnlyWrapper/AdminNavFooter"),
@@ -21,6 +23,7 @@ export default function AuthWrapper({
   const router   = useRouter();
   const pathname = usePathname();
   const [role, setRole] = useState<"admin" | "user" | null>(null);
+  useSessionTimeout();
 
   useEffect(() => {
     if (
@@ -70,7 +73,8 @@ export default function AuthWrapper({
         parsed.role === "user"   ||
         parsed.role === "buyer"  ||
         parsed.role === "farmer" ||
-        parsed.role === "agent"
+        parsed.role === "agent"  ||
+        parsed.role === "dpartner"
       ) {
         setRole("user");
       } else {
@@ -101,4 +105,4 @@ export default function AuthWrapper({
   }
 
   return <ClientOnlyWrapper>{children}</ClientOnlyWrapper>;
-}
+} 

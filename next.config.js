@@ -1,12 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  reactStrictMode: false, // ✅ Double render band — speed badhegi
+  reactStrictMode: false,
+  allowedDevOrigins: ['192.168.0.35'],
   images: {
-    domains: ["res.cloudinary.com"], // ✅ Cloudinary images fast
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+    ],
   },
   experimental: {
-    optimizePackageImports: ["bootstrap"], // ✅ Bootstrap optimize
+    optimizePackageImports: ["bootstrap"],
   },
 };
 

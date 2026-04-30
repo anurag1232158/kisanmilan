@@ -1,143 +1,150 @@
 "use client";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-// import { useTheme } from "../../../ThemeProvider/ThemeProvider";
+import { usePathname, useRouter } from "next/navigation";
 import GoogleTranslate from "../../Dynamic/GoogleTranslate/GoogleTranslate";
 
 const HeaderTop = () => {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [role, setRole] = useState(""); // Track role
-  // const { theme, setTheme } = useTheme();
-
-  // ✅ Check login + role
-  useEffect(() => {
-    const checkAuth = () => {
-  const savedUser = localStorage.getItem("user");
-if (savedUser) {
-  const parsed = JSON.parse(savedUser);
-  setIsLoggedIn(true);
-  setRole(parsed.role || "");
-} else {
-  setIsLoggedIn(false);
-  setRole("");
-}
-    };
-    checkAuth();
-    window.addEventListener("pageshow", checkAuth);
-    return () => window.removeEventListener("pageshow", checkAuth);
-  }, []);
-
-  // ✅ Logout handler
-  const handleLogout = () => {
-    const confirmLogout = window.confirm("Are you sure you want to logout?");
-    if (confirmLogout) {
-      localStorage.removeItem("user");
-localStorage.removeItem("token");
-      setIsLoggedIn(false);
-      setRole("");
-      router.replace("/");
-    }
+  const pathname = usePathname();
+  const [user, setUser] = useState<any>(null);
+  const [ready, setReady] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  // ✅ Central function to load user from localStorage
+  const loadUser = () => {
+    const stored = localStorage.getItem("user");
+    setUser(stored ? JSON.parse(stored) : null);
   };
+  useEffect(() => {
+    loadUser();
+    setReady(true);
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("storage", loadUser);
+    window.addEventListener("authChange", loadUser);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("storage", loadUser);
+      window.removeEventListener("authChange", loadUser);
+    };
+  }, []);
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    window.dispatchEvent(new Event("authChange"));
+    router.push("/");
+  };
+  const isFarmer          = user?.role === "farmer";
+  const isAgent           = user?.role === "agent";
+  const isDeliveryPartner = user?.role === "dpartner";
+  const isBuyer           = user?.role === "buyer";
+  const isAdmin           = user?.role === "admin";
+  if (!ready) return null;
 
   return (
     <header>
       <div className="top-bg d-lg-block-1">
         <div className="container-fluid py-2 d-lg-block px-lg-5">
           <div className="row gx-0">
-            {/* Left side contact info */}
-            <div className="col-lg-8 text-center text-lg-start mb-2 mb-lg-0 d-none d-sm-inline">
+
+            {/* LEFT */}
+            <div className="col-lg-8 d-none d-sm-inline text-lg-start text-center">
               <div className="d-inline-flex">
-                <small className="me-3 fw text-light">
-                  <Link
-                    target="_blank"
-                    href="https://www.google.com/maps/search/Varanasi,+Shri Kashi Vishwanath Temple Dwar,+Uttar+Pradesh"
-                    className="mobils text-white"
-                  >
-                    B-128 Harola, Sector 5, Noida, U.P. 201301
-                  </Link>
-                </small>
-                <small className="me-3 fw text-light">
-                  <Link
-                    target="_blank"
-                    href="https://wa.me/+919170973916"
-                    className="mobils text-white"
-                  >
-                    +91-9170973916{" "}
-                  </Link>
-                </small>
-                <small className="text-light fw">
-                  <Link
-                    target="_blank"
-                    href="mailto:demo453@gmail.com"
-                    className="text-white"
-                  >
-                    demo453@gmail.com
-                  </Link>
-                </small>
+                <small className="me-3 text-light">📍 Noida, Uttar Pradesh</small>
+                <small className="me-3 text-light">📞 +91-9170973916</small>
+                <small className="text-light">✉ demo453@gmail.com</small>
               </div>
             </div>
 
-            {/* Right side */}
+            {/* RIGHT */}
             <div className="col-lg-4 text-center text-lg-end">
-              <div className="d-inline-flex">
-                {/* ✅ My Account dropdown (role-based items) */}
-                <div className="nav-item dropdown">
-                  <Link
-                    href="#"
+              <div className="d-inline-flex align-items-center gap-2">
+
+                {/* ACCOUNT DROPDOWN */}
+                <div className="dropdown">
+                  <Link href="#"
                     className="nav-link dropdown-toggle text-white p-2"
-                    data-bs-toggle="dropdown"
-                  >
-                    My Account
+                    data-bs-toggle="dropdown">
+                    {user ? user.name?.split(" ")[0] : "My Account"}
                   </Link>
 
-                  <div className="dropdown-menu m-0">
-                    {/* ---- GUEST (not logged in) ---- */}
-                    {!isLoggedIn && (
+                   <ul className="dropdown-menu dropdown-menu-end">
+                    {user && (
                       <>
-                        <Link href="/Login" className="dropdown-item">
-                          Login
-                        </Link>
-                        <Link href="/Register" className="dropdown-item">
-                          Register
-                        </Link>
+                        <li className="px-3 py-2">
+                          <div className="fw-semibold">{user.name}</div>
+                          <small className="text-muted">{user.email}</small>
+                          <div>
+                            <span className="badge bg-primary mt-1">{user.role}</span>
+                          </div>
+                        </li>
+                        <li><hr className="dropdown-divider" /></li>
                       </>
                     )}
 
-                    {/* ---- USER ---- */}
-                 {isLoggedIn && (role === "buyer" || role === "farmer" || role === "agent") && (
-                 <>
-    <Link href="/Dashboard" className="dropdown-item">📊 Dashboard</Link>
-    <Link href="/Profile" className="dropdown-item">👤 Profile</Link>
-    <Link href="/Orders" className="dropdown-item">📦 My Orders</Link>
-    {(role === "farmer" || role === "agent") && (
-      <Link href="/ProductAdd" className="dropdown-item">➕ Add Product</Link>
-    )}
-    <button onClick={handleLogout}
-      className="dropdown-item text-start bg-transparent border-0 w-100 text-danger">
-      🚪 Logout
-    </button>
-                 </>
-                 )}
-                    {/* ---- ADMIN ---- */}
-                    {isLoggedIn && role === "admin" && (
+                    <li>
+                      <Link href="/Product" className="dropdown-item">🛒 Products</Link>
+                    </li>
+                    <li>
+                      <Link href="/Rates" className="dropdown-item">
+                        {isAgent ? "🏪 Agent Rates" : "📊 Mandi Rates"}
+                      </Link>
+                    </li>
+
+                    {(isBuyer || isFarmer || isDeliveryPartner) && (
+                      <li>
+                        <Link href="/Orders" className="dropdown-item">📦 Orders</Link>
+                      </li>
+                    )}
+
+                    {isFarmer && (
+                      <li>
+                        <Link href="/ProductAdd" className="dropdown-item">➕ Add Product</Link>
+                      </li>
+                    )}
+
+                    {isAgent && (
                       <>
-                        <Link href="/AdminDashboard" className="dropdown-item">
-                          Admin Dashboard
-                        </Link>
-                        <Link href="/AdminHome" className="dropdown-item">
-                          Admin Home
-                        </Link>
-                        <button
-                          onClick={handleLogout}
-                          className="dropdown-item text-start bg-transparent border-0 w-100"
-                        >
-                          Logout
-                        </button>
+                        <li>
+                          <Link href="/Dashboard" className="dropdown-item">📊 Dashboard</Link>
+                        </li>
+                        <li>
+                          <Link href="/ProductAdd" className="dropdown-item">➕ Add Product</Link>
+                        </li>
                       </>
                     )}
-                  </div>
+
+                    {isDeliveryPartner && (
+                      <>
+                        <li>
+                          <Link href="/Orders" className="dropdown-item">📦 Assigned Orders</Link>
+                        </li>
+                        <li>
+                          <Link href="/Delivery" className="dropdown-item">🚚 Deliveries</Link>
+                        </li>
+                      </>
+                    )}
+
+                    <li><hr className="dropdown-divider" /></li>
+
+                    {user ? (
+                      <li>
+                        <button onClick={logout} className="dropdown-item text-danger">
+                          🚪 Logout
+                        </button>
+                      </li>
+                    ) : (
+                      <>
+                        <li>
+                          <Link href="/Login" className="dropdown-item">Login</Link>
+                        </li>
+                        <li>
+                          <Link href="/Register" className="dropdown-item">Register</Link>
+                        </li>
+                      </>
+                    )}
+                  </ul>
                 </div>
 
                 {/* Language */}
@@ -172,6 +179,7 @@ localStorage.removeItem("token");
                     </Link>
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
