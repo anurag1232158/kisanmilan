@@ -167,13 +167,13 @@ export default function ProductsPage() {
         </div>
         <div className="card-footer bg-white border-0">
            {!isBuyer && !isFarmer && !isDeliveryPartner && (
-            <Link  href="/Login" onClick={(e) => {
-              const confirmLogin = confirm("Login required. Do you want to login?");
-              if (!confirmLogin) {e.preventDefault(); } }}
-              href={`/Login`}
-              className="btn btn-outline-secondary btn-sm flex-grow-1 w-100">
-               Order Now
-            </Link>
+           <Link href="/Login" onClick={(e) => {
+  const confirmLogin = confirm("Login required. Do you want to login?");
+  if (!confirmLogin) { e.preventDefault(); }
+}}
+  className="btn btn-outline-secondary btn-sm flex-grow-1 w-100">
+  Order Now
+</Link>
           )}
 
           {(isBuyer || (isFarmer && !own)) && (

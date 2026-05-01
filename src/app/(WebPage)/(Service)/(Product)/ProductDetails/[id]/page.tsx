@@ -241,7 +241,7 @@ export default function ProductDetail({params}: {params: Promise<{id: string}>})
     const allImages = [product.image_url, ...(product.images || [])].filter(Boolean);
     const displayRating = avgNum && avgNum > 0 ? Math.round(avgNum) : 2;
     const canReview = !!user && (isBuyer || (isFarmer && !ownProduct));
-    const getSlidesToShow = (count) => {
+    const getSlidesToShow = (count: number) => {
   if (count === 2) return 2;
   if (count === 3) return 2;
   return 4;

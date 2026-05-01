@@ -974,7 +974,7 @@ export default function AdminDashboard() {
                     {filteredPayments.length}
                      </span></span>
                       <FilterBar options={["all","pending","confirmed","failed","refunded"]} active={payStatusFilter}
-                       className="fs-4"  color="primary" onChange={v => { setPayStatusFilter(v);  setPage("payments", 1); }}/>
+                      color="primary" onChange={v => { setPayStatusFilter(v);  setPage("payments", 1); }}/>
                      </div>
                    <DateFilterBar />
                     </div>

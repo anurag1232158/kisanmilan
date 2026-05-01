@@ -1,32 +1,31 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 const API = `${process.env.NEXT_PUBLIC_API_URL}`;
 type Step = "address" | "payment" | "confirm" | "success";
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const buyNowProductId = searchParams.get("product");
   const buyNowQty       = Number(searchParams.get("qty") || "1");
   const isBuyNow        = searchParams.get("mode") === "buynow" && !!buyNowProductId;
-  const isReorder       = searchParams.get("mode") === "reorder"; // ← NEW
-  const reorderOrigId   = searchParams.get("orderId") || "";       // ← NEW
+  const isReorder       = searchParams.get("mode") === "reorder";
+  const reorderOrigId   = searchParams.get("orderId") || "";
 
   const [user, setUser]       = useState<any>(null);
   const [cart, setCart]       = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [step, setStep]       = useState<Step>(isReorder ? "payment" : "address"); // ← reorder skips address step
+  const [step, setStep]       = useState<Step>(isReorder ? "payment" : "address");
   const [placing, setPlacing] = useState(false);
   const [orderId, setOrderId] = useState("");
   const [address, setAddress] = useState({ name: "", phone: "", pincode: "", city: "", state: "", street: "" });
   const [payMethod, setPayMethod] = useState<"UPI" | "COD" | "Card" | "NetBanking">("COD");
   const [upiId, setUpiId]     = useState("");
   const [errors, setErrors]   = useState<Record<string, string>>({});
-  const [reorderData, setReorderData] = useState<any>(null); // ← NEW
+  const [reorderData, setReorderData] = useState<any>(null);
 
-  const [reviewStep, setReviewStep]         = useState(false);
   const [reviewProduct, setReviewProduct]   = useState<any>(null);
   const [reviewRating, setReviewRating]     = useState(5);
   const [reviewComment, setReviewComment]   = useState("");
@@ -40,13 +39,11 @@ export default function CheckoutPage() {
     setUser(u);
 
     if (isReorder) {
-      // ── Load reorder data from sessionStorage ──
       const raw = sessionStorage.getItem("reorder_data");
       if (!raw) { router.push("/Orders"); return; }
       const data = JSON.parse(raw);
       setReorderData(data);
 
-      // Parse existing address into form fields
       const parts = (data.delivery_address || "").split("|").map((s: string) => s.trim());
       const addrParts = (parts[0] || "").split(",");
       setAddress({
@@ -58,7 +55,6 @@ export default function CheckoutPage() {
         pincode: (addrParts[2]?.match(/\d{6}/) || [""])[0],
       });
 
-      // Build synthetic cart item from stored order data
       setCart([{
         _id: `reorder-${data.orderId}`,
         product: {
@@ -187,7 +183,6 @@ export default function CheckoutPage() {
         });
       }
 
-      // ── If reorder: cancel the original pending order ──
       if (isReorder && reorderOrigId) {
         await fetch(`${API}/order/${reorderOrigId}`, {
           method: "PUT",
@@ -403,7 +398,6 @@ export default function CheckoutPage() {
           {/* ── LEFT: FORM ── */}
           <div className="col-lg-7">
 
-            {/* ── NEW: Reorder info banner ── */}
             {isReorder && (
               <div className="alert alert-info d-flex align-items-start gap-2 rounded-3 mb-3">
                 <span>🔄</span>
@@ -414,7 +408,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* STEP 1: ADDRESS — hidden for reorder (already filled), but still editable if user navigates back */}
+            {/* STEP 1: ADDRESS */}
             {step === "address" && (
               <div className="card border-0 shadow-sm p-4 fs-7">
                 <h5 className="fw-bold mb-4">📍 Delivery Address</h5>
@@ -480,13 +474,11 @@ export default function CheckoutPage() {
             {step === "payment" && (
               <div className="card border-0 shadow-sm p-4 fs-7">
                 <div className="d-flex align-items-center gap-3 mb-4">
-                  {/* For reorder: back goes to Orders; else back to address */}
                   <button className="btn btn-sm btn-outline-secondary rounded-3"
                     onClick={() => isReorder ? router.push("/Orders") : setStep("address")}>←</button>
                   <h5 className="fw-bold mb-0">💳 Payment Method</h5>
                 </div>
 
-                {/* ── Show saved address summary for reorder ── */}
                 {isReorder && (
                   <div className="bg-light rounded-3 p-3 mb-4 border">
                     <div className="fw-semibold text-success mb-1 fs-7">📍 Delivering to</div>
@@ -554,7 +546,6 @@ export default function CheckoutPage() {
                   <h5 className="fw-bold mb-0">✅ Review & Place Order</h5>
                 </div>
 
-                {/* Address summary */}
                 <div className="bg-light rounded-3 p-3 mb-3">
                   <div className="d-flex justify-content-between align-items-start">
                     <div>
@@ -569,7 +560,6 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Payment summary */}
                 <div className="bg-light rounded-3 p-3 mb-3">
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
@@ -582,7 +572,6 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Items */}
                 <div className="mb-4">
                   <div className="fw-semibold mb-3" style={{ fontSize: 13 }}>🛒 Items ({cart.length})</div>
                   {cart.map((item) => (
@@ -665,5 +654,17 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
+        <div className="spinner-border text-success" role="status" />
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
   );
 }

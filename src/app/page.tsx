@@ -266,7 +266,7 @@ export default function Home() {
                 return (
                   <div key={i} className="km-ticker-item">
                     <span className="tn fs-6">{r.name}</span>
-                    <span className="tp">₹{r.price} <span className="m-0 p-0 fs-9 text-warning"> per/{r.unit || "kg"}</span></span>
+                 <span className="tp">₹{r.price} <span className="m-0 p-0 fs-9 text-warning"> per/{(r as any).unit || "kg"}</span></span>
                     {r.change && r.change !== "0%" && (
                       <span className={dn ? "tc-dn" : "tc-up"}>{dn ? "▼" : "▲"} {r.change}</span>
                     )}
