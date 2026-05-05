@@ -290,10 +290,8 @@ export default function DeliveryPage() {
             )}
 
             {loading ? (
-              <div className="text-center py-5">
-                <div className="spinner-border" style={{ color: "#7c3aed" }} />
-                <div className="mt-2 text-muted">Orders load ho rahe hain...</div>
-              </div>
+              <>
+              </>
             ) : !user?.location ? (
               <div className="text-center py-5">
                 <div style={{ fontSize: 64 }}>📍</div>

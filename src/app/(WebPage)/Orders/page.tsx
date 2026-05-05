@@ -254,9 +254,9 @@ export default function MyOrdersPage() {
   }, [orders]);
 
   if (loading) return (
-    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "70vh" }}>
-      <div className="spinner-border text-success" role="status" />
-    </div>
+    <>
+   
+    </>
   );
 
   return (

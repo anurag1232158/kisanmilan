@@ -53,6 +53,30 @@ export default function AdminDashboard() {
   const [notifTitle,    setNotifTitle]    = useState("");
   const [notifBody,     setNotifBody]     = useState("");
   const [notifTarget,   setNotifTarget]   = useState("all");
+const [smsHistoryPage, setSmsHistoryPage] = useState(1);
+const [emailHistoryPage, setEmailHistoryPage] = useState(1);
+const HIST_PER_PAGE = 5;
+const [notifHistoryPage, setNotifHistoryPage] = useState(1);
+
+const [sendHistory,  setSendHistory]  = useState<any[]>(()=>{
+  if(typeof window==="undefined") return [];
+  try{ return JSON.parse(localStorage.getItem("admin_sendHistory")||"[]"); }catch{ return []; }
+});
+const [notifHistory, setNotifHistory] = useState<any[]>(()=>{
+  if(typeof window==="undefined") return [];
+  try{ return JSON.parse(localStorage.getItem("admin_notifHistory")||"[]"); }catch{ return []; }
+});
+
+useEffect(()=>{
+  if(typeof window!=="undefined")
+    localStorage.setItem("admin_sendHistory", JSON.stringify(sendHistory));
+},[sendHistory]);
+
+useEffect(()=>{
+  if(typeof window!=="undefined")
+    localStorage.setItem("admin_notifHistory", JSON.stringify(notifHistory));
+},[notifHistory]);
+
   const [pages, setPages] = useState<Record<string,number>>({
     users:1, products:1, orders:1, payments:1, farmerrates:1, agentrates:1, reviews:1,
   });
@@ -99,6 +123,9 @@ export default function AdminDashboard() {
   };
   const flash=(text:string,ok:boolean)=>{setActionMsg({text,ok});setTimeout(()=>setActionMsg(null),3500);};
   const openView   =(col:string,row:any)=>{ setModal({type:"view",   collection:col,data:row}); };
+  /* ──  const openEdit = (col: string, row: any) => {
+  router.push(`/AdminEdit/${row._id}?col=${col}`);
+}; ── */
   const openEdit   =(col:string,row:any)=>{ setEditForm({...row}); setModal({type:"edit",   collection:col,data:row}); };
   const openDelete =(col:string,row:any)=>{ setModal({type:"delete", collection:col,data:row}); };
   const openContact=(col:string,row:any)=>{ setModal({type:"contact",collection:col,data:row}); };
@@ -289,7 +316,7 @@ export default function AdminDashboard() {
     title:string;badge:number|string;badgeColor:string;
     filter?:React.ReactNode;onViewAll?:()=>void;children:React.ReactNode;
   })=>(
-    <div className="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div className="card border-1 shadow-sm rounded-4 overflow-hidden mb-4">
       <div className="card-header bg-white border-bottom py-3 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
         <span className="fw-bold fs-6">
           {title} <span className={`badge bg-${badgeColor} ms-1 rounded-pill`}>{badge}</span>
@@ -341,8 +368,8 @@ export default function AdminDashboard() {
     return(
       <div className="modal show d-block" style={{background:"rgba(0,0,0,0.6)",zIndex:1055}} onClick={closeModal}>
         <div className="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered" onClick={e=>e.stopPropagation()}>
-          <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div className="modal-header bg-info text-white border-0 py-2">
+          <div className="modal-content border-1 shadow-lg rounded-4 overflow-hidden">
+            <div className="modal-header bg-info text-white border-1 py-2">
               <h6 className="fw-bold mb-0 text-white">👁 View — {CC[modal.collection]?.label}</h6>
               <button className="btn-close btn-close-warning text-warning" onClick={closeModal}></button>
             </div>
@@ -368,7 +395,7 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-            <div className="modal-footer border-0 bg-light gap-2">
+            <div className="modal-footer border-1 bg-light gap-2">
               <button className="btn btn-success btn-sm fw-semibold" onClick={()=>{closeModal();setTimeout(()=>openEdit(modal.collection,modal.data),50);}}>✏️ Edit This</button>
               <button className="btn btn-secondary btn-sm" onClick={closeModal}>Close</button>
             </div>
@@ -378,7 +405,8 @@ export default function AdminDashboard() {
     );
   };
 
-  /* ════ EDIT MODAL — FIXED ════ */
+
+/* ════ EDIT MODAL — with Image Upload ════ */
   const EditModal=()=>{
     if(modal.type!=="edit"||!modal.data)return null;
     const skip=["_id","__v","createdAt","updatedAt","password"];
@@ -391,14 +419,45 @@ export default function AdminDashboard() {
       unit:          ["kg","g","litre","ml","dozen","piece","quintal"],
       vehicle_type:  ["bike","bicycle","auto","truck","van"],
     };
+    const handleImageUpload = async (file: File, fieldKey: string) => {
+      const CLOUD_NAME = "dshk1fe2l";       // ← aapka Cloudinary cloud name
+      const UPLOAD_PRESET = "kisanmilan_preset";
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", UPLOAD_PRESET);
+      try {
+        setEditForm((f: any) => ({ ...f, [`${fieldKey}_uploading`]: true }));
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+          { method: "POST", body: formData }
+        );
+        const data = await res.json();
+        if (data.secure_url) {
+          setEditForm((f: any) => ({...f,
+            [fieldKey]: data.secure_url,
+            [`${fieldKey}_uploading`]: false,
+          }));
+        } else {
+          alert("❌ Upload failed: " + (data.error?.message || "Unknown error"));
+          setEditForm((f: any) => ({ ...f, [`${fieldKey}_uploading`]: false }));
+        }
+      } catch (err) {
+        alert("❌ Network error during upload");
+        setEditForm((f: any) => ({ ...f, [`${fieldKey}_uploading`]: false }));
+      }
+    };
+
     return(
       <div className="modal show d-block" style={{background:"rgba(0,0,0,0.6)",zIndex:1060}} onClick={closeModal}>
         <div className="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered" onClick={e=>e.stopPropagation()}>
-          <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div className="modal-header bg-success text-white border-0 py-3">
-              <h6 className="modal-title fw-bold mb-0">✏️ Edit — {CC[modal.collection]?.label} <span className="opacity-75" style={{fontSize:"0.75rem"}}>#{shortId(modal.data._id)}</span></h6>
+          <div className="modal-content border-1 shadow-lg rounded-4 overflow-hidden">
+            <div className="modal-header bg-success text-white border-1 py-3">
+              <h6 className="modal-title fw-bold mb-0">✏️ Edit — {CC[modal.collection]?.label}
+                <span className="opacity-75" style={{fontSize:"0.75rem"}}>#{shortId(modal.data._id)}</span>
+              </h6>
               <button className="btn-close btn-close-white" onClick={closeModal}></button>
             </div>
+
             <div className="modal-body">
               {modal.collection==="orders"&&(
                 <div className="alert alert-info py-2 mb-3" style={{fontSize:"0.8rem"}}>
@@ -407,37 +466,165 @@ export default function AdminDashboard() {
               )}
               <div className="row g-3">
                 {entries.map(([k,v])=>{
-                  const isBool  =typeof v==="boolean";
-                  const isSelect=k in selectOpts;
-                  const isNum   =["price","stock","quantity","amount","rating","total_price"].includes(k);
-                  const isTextArea=["description","delivery_address","comment","review"].includes(k);
+                  const isBool     = typeof v==="boolean";
+                  const isSelect   = k in selectOpts;
+                  const isNum      = ["price","stock","quantity","amount","rating","total_price"].includes(k);
+                  const isTextArea = ["description","delivery_address","comment","review"].includes(k);
+                  const isImage    = k==="image_url";
+                  const isUploading = !!editForm[`${k}_uploading`];
+                  const imgSrc     = String(editForm[k] ?? "").trim();
+                  if(k.endsWith("_uploading")) return null;
                   return(
-                    <div key={k} className={isTextArea?"col-12":"col-md-6"}>
-                      <label className="form-label fw-semibold text-capitalize" style={{fontSize:"0.78rem",color:"#475569"}}>
+                    <div key={k} className={isTextArea || isImage ? "col-12" : "col-md-6"}>
+                      <label className="form-label fw-semibold text-capitalize d-flex align-items-center gap-1"
+                        style={{fontSize:"0.78rem",color:"#475569"}}>
                         {k.replace(/_/g," ")}
-                        {k==="status"&&<span className="badge bg-warning text-dark ms-1" style={{fontSize:"0.65rem"}}>KEY FIELD</span>}
+                        {k==="status" && <span className="badge bg-warning text-dark" style={{fontSize:"0.62rem"}}>KEY FIELD</span>}
+                        {isImage && <span className="badge bg-info text-dark"    style={{fontSize:"0.62rem"}}>IMAGE</span>}
                       </label>
-                      {isBool?(
-                        <select className="form-select form-select-sm" value={String(v)} onChange={e=>setEditForm((f:any)=>({...f,[k]:e.target.value==="true"}))}>
-                          <option value="true">Yes</option><option value="false">No</option>
+
+                      {/* Boolean */}
+                      {isBool ? (
+                        <select className="form-select form-select-sm" value={String(editForm[k])}
+                          onChange={e=>setEditForm((f:any)=>({...f,[k]:e.target.value==="true"}))}>
+                          <option value="true">Yes</option>
+                          <option value="false">No</option>
                         </select>
-                      ):isSelect?(
-                        <select className="form-select form-select-sm" value={String(v||"")} onChange={e=>setEditForm((f:any)=>({...f,[k]:e.target.value}))}>
+                      ) : isSelect ? (
+                        <select className="form-select form-select-sm"
+                          value={String(editForm[k]||"")}
+                          onChange={e=>setEditForm((f:any)=>({...f,[k]:e.target.value}))}>
                           {selectOpts[k].map(opt=><option key={opt} value={opt}>{opt}</option>)}
                         </select>
-                      ):isTextArea?(
-                        <textarea className="form-control form-control-sm" rows={2} value={String(v??"")} onChange={e=>setEditForm((f:any)=>({...f,[k]:e.target.value}))}></textarea>
-                      ):(
-                        <input className="form-control form-control-sm" type={isNum?"number":"text"} value={String(v??"")} onChange={e=>setEditForm((f:any)=>({...f,[k]:isNum?Number(e.target.value):e.target.value}))}/>
+                      ) : isTextArea ? (
+                        <textarea className="form-control form-control-sm" rows={2}
+                          value={String(editForm[k]??"")}
+                          onChange={e=>setEditForm((f:any)=>({...f,[k]:e.target.value}))}>
+                        </textarea>
+                      ) : isImage ? (
+                        <div className="d-flex flex-column gap-2">
+                          {/* ── Current image preview ── */}
+                          <div className="rounded-3 overflow-hidden border bg-light d-flex align-items-center justify-content-center"
+                            style={{minHeight:150,position:"relative",background:"#f8fafc"}}>
+                            {isUploading ? (
+                              <div className="d-flex flex-column align-items-center gap-2 text-primary py-4">
+                                <div className="spinner-border" style={{width:32,height:32}}></div>
+                                <small className="fw-semibold">Uploading to Cloudinary...</small>
+                              </div>
+                            ) : imgSrc ? (
+                              <>
+                                <img src={imgSrc} alt="Preview"
+                                  style={{width:"100%",maxHeight:200,objectFit:"cover",display:"block"}}
+                                  onError={e=>{ const img = e.target as HTMLImageElement;
+                                    img.style.display="none"; const fb = img.nextElementSibling as HTMLElement;
+                                    if(fb) fb.style.display="flex";
+                                  }}/>
+
+                                {/* error fallback */}
+                                <div style={{ display:"none",flexDirection:"column",alignItems:"center",
+                                  justifyContent:"center",padding:24,color:"#94a3b8",
+                                  fontSize:"0.78rem",gap:6,width:"100%",
+                                }}>
+                                  <span style={{fontSize:"2rem"}}>🖼️</span>
+                                  <span>Image load nahi hui</span>
+                                </div>
+                                <span style={{
+                                  position:"absolute",top:6,right:6,
+                                  background:"rgba(0,0,0,0.55)",color:"white",
+                                  fontSize:"0.62rem",padding:"2px 8px",borderRadius:6,
+                                }}>Current Image</span>
+                              </>
+                            ) : (
+                              <div className="d-flex flex-column align-items-center gap-2 text-muted py-4"
+                                style={{fontSize:"0.8rem"}}>
+                                <span style={{fontSize:"2.5rem"}}>📷</span>
+                                <span>Koi image nahi — upload karo ya URL daalo</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* ── Upload new image ── */}
+                          <div className="card border-dashed border-2 border-primary rounded-3 p-0 overflow-hidden"
+                            style={{borderStyle:"dashed",border:"2px dashed #3b82f6"}}>
+                            <div className="card-body py-3 px-3">
+                              <div className="fw-semibold mb-2 text-primary" style={{fontSize:"0.8rem"}}>
+                                📤 Nayi Image Upload karo
+                              </div>
+                              <input type="file" accept="image/*" className="form-control form-control-sm" disabled={isUploading}
+                                onChange={e=>{
+                                  const file = e.target.files?.[0];
+                                  if(file){
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => {
+                                      setEditForm((f:any)=>({...f,[k]: ev.target?.result as string}));
+                                    };
+                                    reader.readAsDataURL(file);
+                                    handleImageUpload(file, k);
+                                  }
+                                }}
+                              />
+                              <small className="text-muted d-block mt-1" style={{fontSize:"0.7rem"}}>
+                                JPG, PNG, WEBP — Max 10MB. Cloudinary pe upload hogi.
+                              </small>
+                            </div>
+                          </div>
+
+                          {/* ── OR: manual URL input ── */}
+                          <div className="d-flex align-items-center gap-2">
+                            <hr className="flex-grow-1 my-0"/>
+                            <small className="text-muted fw-semibold px-1" style={{fontSize:"0.7rem"}}>YA URL daalo</small>
+                            <hr className="flex-grow-1 my-0"/>
+                          </div>
+
+                          <div className="input-group input-group-sm">
+                            <span className="input-group-text bg-light">🔗</span>
+                            <input
+                              className="form-control"
+                              type="text"
+                              placeholder="https://res.cloudinary.com/..."
+                              value={imgSrc.startsWith("data:") ? "" : imgSrc}
+                              disabled={isUploading}
+                              onChange={e=>setEditForm((f:any)=>({...f,[k]:e.target.value}))}
+                            />
+                            {imgSrc && !isUploading && (
+                              <button className="btn btn-outline-danger" type="button"
+                                title="Clear" onClick={()=>setEditForm((f:any)=>({...f,[k]:""}))}>
+                                ✕
+                              </button>
+                            )}
+                          </div>
+
+                          {/* open full image */}
+                          {imgSrc && !imgSrc.startsWith("data:") && !isUploading && (
+                            <a href={imgSrc} target="_blank" rel="noopener noreferrer"
+                              className="btn btn-outline-info btn-sm py-1"
+                              style={{fontSize:"0.72rem",width:"fit-content"}}>
+                              🖼️ Full size mein dekho
+                            </a>
+                          )}
+                        </div>
+
+                      ) : (
+                        <input className="form-control form-control-sm"
+                          type={isNum?"number":"text"}
+                          value={String(editForm[k]??"")}
+                          onChange={e=>setEditForm((f:any)=>({
+                            ...f,[k]: isNum ? Number(e.target.value) : e.target.value
+                          }))}
+                        />
                       )}
                     </div>
                   );
                 })}
               </div>
             </div>
-            <div className="modal-footer border-0 bg-light gap-2">
-              <button className="btn btn-success fw-bold px-4" onClick={handleSave} disabled={saving}>
-                {saving?<><span className="spinner-border spinner-border-sm me-2"/>Saving...</>:"💾 Save Changes"}
+
+            <div className="modal-footer border-1 bg-light gap-2">
+              <button className="btn btn-success fw-bold px-4" onClick={handleSave} disabled={saving||Object.keys(editForm).some(k=>k.endsWith("_uploading")&&editForm[k])}>
+                {saving
+                  ? <><span className="spinner-border spinner-border-sm me-2"/>Saving...</>
+                  : "💾 Save Changes"
+                }
               </button>
               <button className="btn btn-secondary px-4" onClick={closeModal}>Cancel</button>
             </div>
@@ -454,8 +641,8 @@ export default function AdminDashboard() {
     return(
       <div className="modal show d-block" style={{background:"rgba(0,0,0,0.6)",zIndex:1055}} onClick={closeModal}>
         <div className="modal-dialog modal-sm modal-dialog-centered" onClick={e=>e.stopPropagation()}>
-          <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div className="modal-header bg-danger text-white border-0 py-3">
+          <div className="modal-content border-1 shadow-lg rounded-4 overflow-hidden">
+            <div className="modal-header bg-danger text-white border-1 py-3">
               <h6 className="modal-title fw-bold mb-0">🗑️ Confirm Delete</h6>
               <button className="btn-close btn-close-white" onClick={closeModal}></button>
             </div>
@@ -467,7 +654,7 @@ export default function AdminDashboard() {
               </div>
               <p className="text-muted mt-2 mb-0" style={{fontSize:"0.72rem"}}>This cannot be undone.</p>
             </div>
-            <div className="modal-footer border-0 justify-content-center gap-2">
+            <div className="modal-footer border-1 justify-content-center gap-2">
               <button className="btn btn-danger fw-bold px-4" onClick={handleDelete} disabled={saving}>
                 {saving?<><span className="spinner-border spinner-border-sm me-2"/>Deleting...</>:"🗑️ Yes, Delete"}
               </button>
@@ -489,8 +676,8 @@ export default function AdminDashboard() {
     return(
       <div className="modal show d-block" style={{background:"rgba(0,0,0,0.6)",zIndex:1055}} onClick={closeModal}>
         <div className="modal-dialog modal-dialog-centered" onClick={e=>e.stopPropagation()}>
-          <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div className="modal-header text-white border-0 py-3" style={{background:"linear-gradient(135deg,#0f172a,#1e40af)"}}>
+          <div className="modal-content border-1 shadow-lg rounded-4 overflow-hidden">
+            <div className="modal-header text-white border-1 py-3" style={{background:"linear-gradient(135deg,#0f172a,#1e40af)"}}>
               <h6 className="modal-title fw-bold mb-0">📞 Contact — {name}</h6>
               <button className="btn-close btn-close-white" onClick={closeModal}></button>
             </div>
@@ -566,7 +753,7 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
-            <div className="modal-footer border-0 bg-light">
+            <div className="modal-footer border-1 bg-light">
               <button className="btn btn-secondary btn-sm" onClick={closeModal}>Close</button>
             </div>
           </div>
@@ -574,7 +761,16 @@ export default function AdminDashboard() {
       </div>
     );
   };
-
+const timeAgo=(iso:string)=>{
+  const diff=Date.now()-new Date(iso).getTime();
+  const mins=Math.floor(diff/60000);
+  const hrs=Math.floor(mins/60);
+  const days=Math.floor(hrs/24);
+  if(days>0) return `${days} din pahle`;
+  if(hrs>0)  return `${hrs} ghante pahle`;
+  if(mins>0) return `${mins} min pahle`;
+  return "Abhi";
+};
   return(
     <div className="d-flex" style={{minHeight:"100vh",background:"#f1f5f9",fontFamily:"'Segoe UI',sans-serif"}}>
 
@@ -588,7 +784,7 @@ export default function AdminDashboard() {
           {navItems.map(item=>(
             <button key={item.key}
               onClick={()=>{setActiveTab(item.key as TabKey);setUserRoleFilter("all");setOrderStatusFilter("all");setPayStatusFilter("all");setDateFrom("");setDateTo("");setProductLocFilter("");setOrderLocFilter("");setProductSearch("");setOrderSearch("");}}
-              className="btn w-100 text-start d-flex align-items-center gap-2 rounded-0 border-0"
+              className="btn w-100 text-start d-flex align-items-center gap-2 rounded-0 border-1"
               style={{padding:"10px 18px",color:activeTab===item.key?"#fbbf24":"#94a3b8",background:activeTab===item.key?"#1e293b":"transparent",borderLeft:`3px solid ${activeTab===item.key?"#fbbf24":"transparent"}`,whiteSpace:"nowrap",fontSize:13,fontWeight:500}}>
               <span style={{flexShrink:0}}>{item.icon}</span>
               {sidebarOpen&&item.label}
@@ -609,7 +805,7 @@ export default function AdminDashboard() {
         <header className="d-flex align-items-center justify-content-between bg-white border-bottom px-3" style={{height:54,position:"sticky",top:0,zIndex:100}}>
           <div className="d-flex align-items-center gap-2">
             <button onClick={()=>setSidebarOpen(o=>!o)} className="btn btn-light btn-sm">☰</button>
-            <span className="fw-bold text-dark fs-6">📊 DemoHome — Admin Dashboard</span>
+            <span className="fw-bold text-dark fs-7">📊 DemoHome — Admin Dashboard</span>
           </div>
           <div className="d-flex align-items-center gap-2">
            <span className="badge bg-warning text-dark px-3 py-2">🛡️ Admin</span>
@@ -634,10 +830,8 @@ export default function AdminDashboard() {
             </div>
           )}
           {loading?(
-            <div className="text-center py-5 m-auto">
-              <div className="spinner-border text-success" style={{width:44,height:44}}></div>
-              <p className="text-success mt-3">Loading MongoDB collections...</p>
-            </div>
+            <>
+            </>
           ):<>
 
             {/* ════════════════ DASHBOARD ════════════════ */}
@@ -678,7 +872,7 @@ export default function AdminDashboard() {
                </div>
 
               {/* Role Breakdown */}
-              <div className="card border-0 shadow-sm rounded-4 mb-4 rounded-5">
+              <div className="card border-1 shadow-sm rounded-4 mb-4 rounded-5">
                 <div className="card-header bg-white border-bottom fw-bold py-2 fs-5">👥 User Role Breakdown</div>
                 <div className="card-body">
                   <div className="row g-3">
@@ -811,7 +1005,7 @@ export default function AdminDashboard() {
             {activeTab==="users"&&(()=>{
               const{sliced,total,pg}=paginate(filteredUsers,"users");
               return(
-                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
                   <div className="card-header bg-white border-bottom py-3 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <span className="fw-bold fs-5">👥 Users <span className="badge bg-primary rounded-pill ms-1">{filteredUsers.length}</span></span>
                     <FilterBar options={["all","farmer","buyer","agent","dpartner"]} active={userRoleFilter} color="primary" onChange={v=>{setUserRoleFilter(v);setPage("users",1);}}/>
@@ -847,7 +1041,7 @@ export default function AdminDashboard() {
             {activeTab==="products"&&(()=>{
               const{sliced,total,pg}=paginate(filteredProducts,"products");
               return(
-                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
                   <div className="card-header bg-white border-bottom py-3 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <span className="fw-bold fs-5">📦 Products <span className="badge bg-info rounded-pill ms-1">{filteredProducts.length}</span>
                       {(dateFrom||dateTo||productLocFilter||productSearch)&&<span className="badge bg-warning text-dark ms-1fs-6">Filtered</span>}
@@ -863,21 +1057,22 @@ export default function AdminDashboard() {
                   </div>
                   <div className="table-responsive">
                     <table className="table table-bordered table-hover table-sm mb-0 align-middle">
-                      <THead cols={["#","Img","Product","Farmer","Category","Price","Stock","Unit","Location","Avail","Added","Actions"]}/>
+                      <THead cols={["#","ID","Img","Product","Farmer","Category","Price","Stock","Unit","Location","Avail","Added","Actions"]}/>
                       <tbody>
                         {sliced.map((p:any,i:number)=>(
                           <tr key={i} className="fs-7">
-                            <td >{(pg-1)*PER_PAGE+i+1}</td>
+                            <td>{(pg-1)*PER_PAGE+i+1}</td>
+                            <td>{shortId(p._id)}</td>
                             <td>{p.image_url?<img src={p.image_url} alt="" className="rounded" style={{width:32,height:32,objectFit:"cover"}}/>:<span>📦</span>}</td>
-                            <td >{p.product_name||p.name||"—"}<div>#{shortId(p._id)}</div></td>
-                            <td >{p.farmer_name||"—"}</td>
-                            <td ><span className="badge bg-light text-dark border">{p.category||"—"}</span></td>
+                            <td>{p.product_name||p.name||"—"}</td>
+                            <td>{p.farmer_name||"—"}</td>
+                            <td><span className="badge bg-light text-dark border">{p.category||"—"}</span></td>
                             <td className="fw-bold text-success">₹{p.price}</td>
                             <td className={`fw-bold ${!p.stock?"text-danger":p.stock<10?"text-warning":"text-success"}`} >{p.stock||0}</td>
-                            <td >{p.unit||"kg"}</td>
-                            <td >{p.location ? p.location.slice(0, 20) : "—"}...</td>
+                            <td>{p.unit||"kg"}</td>
+                            <td>{p.location ? p.location.slice(0, 20) : "—"}...</td>
                             <td>{p.is_available?<span className="badge bg-success">Yes</span>:<span className="badge bg-danger">No</span>}</td>
-                            <td >{fmt(p.createdAt)}</td>
+                            <td>{fmt(p.createdAt)}</td>
                             <ActionBtns col="products" row={p}/>
                           </tr>
                         ))}
@@ -894,7 +1089,7 @@ export default function AdminDashboard() {
             {activeTab==="orders"&&(()=>{
               const{sliced,total,pg}=paginate(filteredOrders,"orders");
               return(
-                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
                  <div className="card-header bg-white border-bottom py-3 px-3 d-flex flex-column gap-2">
                <div className="d-flex justify-content-between align-items-center flex-wrap">
                 <div className="d-flex align-items-center gap-2 flex-wrap border-buttom">
@@ -964,7 +1159,7 @@ export default function AdminDashboard() {
             {activeTab==="payments"&&(()=>{
               const{sliced,total,pg}=paginate(filteredPayments,"payments");
               return(
-                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
                 <div className="card-header bg-white border-bottom py-3 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
 
               {/* LEFT SIDE */}
@@ -1012,7 +1207,7 @@ export default function AdminDashboard() {
               const{sliced,total,pg}=paginate(filteredFarmerRates,"farmerrates");
               
               return(
-                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
                   <div className="card-header bg-white border-bottom py-3 px-3">
                    <div className="d-flex justify-content-between align-items-center flex-wrap">
                  <span className="fw-bold fs-6"> 🌾 Farmer Rates
@@ -1059,7 +1254,7 @@ export default function AdminDashboard() {
               const filteredAgentRates=agentRates.filter((r:any)=>inDateRange(r.createdAt));
               const{sliced,total,pg}=paginate(filteredAgentRates,"agentrates");
              return(
-                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
                <div className="card-header bg-white border-bottom py-3 px-3">
                 <div className="d-flex justify-content-between align-items-center flex-wrap">
                  <span className="fw-bold fs-6"> 🏪 Agent Rates 
@@ -1105,7 +1300,7 @@ export default function AdminDashboard() {
                  const filteredReviews=reviews.filter((r:any)=>inDateRange(r.createdAt));
                    const{sliced,total,pg}=paginate(filteredReviews,"reviews");
                  return(
-                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
                   <div className="card-header bg-white border-bottom py-3 px-3">
                  
                     <div className="d-flex justify-content-between align-items-center flex-wrap">
@@ -1157,7 +1352,7 @@ export default function AdminDashboard() {
                     {title:"❤️ Wishlist",color:"danger",rows:[["Documents","1"],["Fields","user_id, product_id"],["Auth","verifyToken"],["Toggle","POST /wishlist"],["Get","GET /wishlist"],["Remove","DELETE /wishlist/:id"],["Response","added/removed"]]}
                   ].map(s=>(
                     <div key={s.title} className="col-md-6">
-                      <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                      <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
                         <div className={`card-header bg-${s.color} bg-opacity-10 border-bottom py-2 px-3 fw-bold`} style={{fontSize:13}}>{s.title}</div>
                         <table className="table table-sm table-bordered mb-0">
                           <tbody>
@@ -1173,7 +1368,7 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                 </div>
-                <div className="card border-0 shadow-sm rounded-4">
+                <div className="card border-1 shadow-sm rounded-4">
                   <div className="card-header bg-white border-bottom py-2 px-3 fw-bold" style={{fontSize:13}}>📊 Collection Summary</div>
                   <div className="card-body">
                     <div className="row g-2">
@@ -1213,248 +1408,714 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+            
+  {activeTab==="communications"&&(()=>{
+     return(
+      <div className="d-flex flex-column px-3">
+    {/* Hero */}
+    <div className="rounded-4 p-4 py-3 mb-4 text-white position-relative overflow-hidden"
+      style={{background:"linear-gradient(135deg,#1e40af,#0f172a)"}}>
+      <div className="position-absolute top-0 end-0 opacity-10 fs-1" >📣</div>
+      <h5 className="fw-bold mb-1 text-white">📣 Communications Center</h5>
+      <p className="mb-0 opacity-75 fs-7">Send SMS, Email, or WhatsApp to users directly from admin panel.</p>
+      <div className="d-flex gap-2 mt-3 flex-wrap">
+        {[
+          {icon:"💬",label:"SMS",count:users.filter((u:any)=>u.phone).length,color:"#3b82f6"},
+          {icon:"📧",label:"Email",count:users.filter((u:any)=>u.email).length,color:"#f59e0b"},
+          {icon:"💚",label:"WhatsApp",count:users.filter((u:any)=>u.phone).length,color:"#22c55e"},
+        ].map(s=>(
+          <div key={s.label} className="rounded-3 px-3 py-1 d-flex align-items-center gap-2"
+            style={{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)"}}>
+            <span>{s.icon}</span>
+            <div>
+              <div className="fw-bold fs-7">{s.label} Reachable</div>
+              <div className="fw-bold fs-7" style={{color:s.color}}>{s.count}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
 
-            {/* ════════════════ COMMUNICATIONS ════════════════ */}
-            {activeTab==="communications"&&(
-              <div>
-                <div className="rounded-4 p-4 mb-4 text-white" style={{background:"linear-gradient(135deg,#1e40af,#0f172a)"}}>
-                  <h5 className="fw-bold mb-1 text-white">📣 Communications Center</h5>
-                  <p className="mb-0 opacity-75 fs-7">Send SMS, Email, or WhatsApp to users directly from admin panel.</p>
+    {/* Tabs */}
+    <div className="d-flex gap-2 mb-4 flex-wrap">
+      {(["sms","email","call"] as const).map(t=>(
+        <button key={t} onClick={()=>setCommTab(t)}
+          className={`btn fw-bold px-4 rounded-pill ${commTab===t?"btn-dark":"btn-outline-secondary"}`}
+          style={{fontSize:"0.85rem"}}>
+          {t==="sms"?"💬 SMS":t==="email"?"📧 Email":"📞 Call List"}
+        </button>
+      ))}
+    </div>
+
+    {/* ── SMS TAB ── */}
+    {commTab==="sms"&&(
+      <div className="row g-3">
+        <div className="col-md-8">
+          <div className="card border-1 shadow-sm rounded-4">
+            <div className="card-header bg-white border-bottom py-2 px-4 fw-bold fs-6">💬 Bulk SMS</div>
+            <div className="card-body py-2 px-4">
+              <div className="mb-2">
+                <label className="form-label fw-semibold fs-6">Target Users</label>
+                <select className="form-select form-select-sm" value={notifTarget} onChange={e=>setNotifTarget(e.target.value)}>
+                  <option value="all">All Users ({users.length})</option>
+                  <option value="farmer">Farmers ({farmers.length})</option>
+                  <option value="buyer">Buyers ({buyers.length})</option>
+                  <option value="agent">Agents ({agents.length})</option>
+                  <option value="dpartner">D-Partners ({dpartners.length})</option>
+                </select>
+              </div>
+              <div className="mb-2">
+                <label className="form-label fw-semibold fs-6">SMS Message</label>
+                <textarea className="form-control" rows={2} placeholder="Type SMS message..."
+                  value={smsText} onChange={e=>setSmsText(e.target.value)} maxLength={160}/>
+                <div className="d-flex justify-content-between mt-1">
+                  <small className="text-muted">{smsText.length}/160 characters</small>
+                  {smsText.length>0&&<small className={smsText.length>140?"text-danger fw-bold":"text-success"}>{160-smsText.length} remaining</small>}
                 </div>
-                <div className="d-flex gap-2 mb-4 flex-wrap">
-                  {(["sms","email","call"] as const).map(t=>(
-                    <button key={t} onClick={()=>setCommTab(t)} className={`btn fw-bold px-4 ${commTab===t?"btn-dark":"btn-outline-secondary"}`}>
-                      {t==="sms"?"💬 SMS":t==="email"?"📧 Email":"📞 Call List"}
-                    </button>
+              </div>
+              <div className="mb-4">
+                <label className="form-label fw-semibold fs-6">Quick Templates</label>
+                <div className="d-flex gap-2 flex-wrap">
+                  {["Order confirm ho gaya!","Delivery aaj ho jaegi","Naye products available!","Payment received!"].map(t=>(
+                    <button key={t} className="btn btn-outline-primary btn-sm rounded-pill" style={{fontSize:"0.72rem"}} onClick={()=>setSmsText(t)}>{t}</button>
                   ))}
                 </div>
-
-                {commTab==="sms"&&(
-                  <div className="row g-3">
-                    <div className="col-md-8">
-                      <div className="card border-0 shadow-sm rounded-4">
-                        <div className="card-header bg-white border-bottom py-2 px-3 fw-bold">💬 Bulk SMS</div>
-                        <div className="card-body">
-                          <div className="mb-3">
-                            <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Target Users</label>
-                            <select className="form-select form-select-sm" onChange={e=>setNotifTarget(e.target.value)}>
-                              <option value="all">All Users ({users.length})</option>
-                              <option value="farmer">Farmers ({farmers.length})</option>
-                              <option value="buyer">Buyers ({buyers.length})</option>
-                              <option value="agent">Agents ({agents.length})</option>
-                              <option value="dpartner">D-Partners ({dpartners.length})</option>
-                            </select>
-                          </div>
-                          <div className="mb-3">
-                            <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>SMS Message</label>
-                            <textarea className="form-control" rows={4} placeholder="Type SMS message..." value={smsText} onChange={e=>setSmsText(e.target.value)} maxLength={160}></textarea>
-                            <small className="text-muted">{smsText.length}/160</small>
-                          </div>
-                          <div className="mb-3">
-                            <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Quick Templates</label>
-                            <div className="d-flex gap-2 flex-wrap">
-                              {["Order confirm ho gaya!","Delivery aaj ho jaegi","Naye products available!","Payment received!"].map(t=>(
-                                <button key={t} className="btn btn-outline-primary btn-sm" style={{fontSize:"0.72rem"}} onClick={()=>setSmsText(t)}>{t}</button>
-                              ))}
-                            </div>
-                          </div>
-                          <button className="btn btn-primary fw-bold w-100" onClick={()=>{if(!smsText.trim())return flash("❌ SMS text khali hai!",false);flash(`✅ SMS sent to ${notifTarget} users!`,true);setSmsText("");}}>
-                            📤 Send SMS to {notifTarget==="all"?`All ${users.length}`:notifTarget} users
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="card border-0 shadow-sm rounded-4 h-100">
-                        <div className="card-header bg-white border-bottom py-2 px-3 fw-bold">📊 User Stats</div>
-                        <div className="card-body">
-                          {[{label:"Total Users",val:users.length,color:"primary"},{label:"Farmers",val:farmers.length,color:"success"},{label:"Buyers",val:buyers.length,color:"info"},{label:"Agents",val:agents.length,color:"warning"},{label:"D-Partners",val:dpartners.length,color:"secondary"}].map(s=>(
-                            <div key={s.label} className="d-flex justify-content-between align-items-center mb-2 py-2 border-bottom">
-                              <span style={{fontSize:"0.82rem"}}>{s.label}</span>
-                              <span className={`badge bg-${s.color} rounded-pill`}>{s.val}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {commTab==="email"&&(
-                  <div className="row g-3">
-                    <div className="col-md-8">
-                      <div className="card border-0 shadow-sm rounded-4">
-                        <div className="card-header bg-white border-bottom py-2 px-3 fw-bold">📧 Bulk Email</div>
-                        <div className="card-body">
-                          <div className="mb-3">
-                            <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Target</label>
-                            <select className="form-select form-select-sm" onChange={e=>setNotifTarget(e.target.value)}>
-                              <option value="all">All Users</option><option value="farmer">Farmers</option><option value="buyer">Buyers</option><option value="agent">Agents</option>
-                            </select>
-                          </div>
-                          <div className="mb-3">
-                            <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Subject</label>
-                            <input className="form-control form-control-sm" placeholder="Email subject..." value={emailSubject} onChange={e=>setEmailSubject(e.target.value)}/>
-                          </div>
-                          <div className="mb-3">
-                            <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Body</label>
-                            <textarea className="form-control" rows={5} placeholder="Compose email..." value={emailBody} onChange={e=>setEmailBody(e.target.value)}></textarea>
-                          </div>
-                          <div className="mb-3">
-                            <div className="d-flex gap-2 flex-wrap">
-                              {[{subj:"Order Confirmed",body:"Dear User,\n\nYour order is confirmed!\n\nDemoHome Team"},{subj:"New Products",body:"Dear User,\n\nNew products available. Check them out!\n\nDemoHome"},{subj:"Payment Done",body:"Dear User,\n\nPayment received successfully.\n\nDemoHome"}].map(t=>(
-                                <button key={t.subj} className="btn btn-outline-warning btn-sm" style={{fontSize:"0.72rem"}} onClick={()=>{setEmailSubject(t.subj);setEmailBody(t.body);}}>{t.subj}</button>
-                              ))}
-                            </div>
-                          </div>
-                          <button className="btn btn-warning fw-bold w-100" onClick={()=>{if(!emailSubject.trim()||!emailBody.trim())return flash("❌ Subject ya body khali hai!",false);flash(`✅ Email sent to ${notifTarget} users!`,true);setEmailSubject("");setEmailBody("");}}>
-                            📧 Send Email Campaign
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="card border-0 shadow-sm rounded-4">
-                        <div className="card-header bg-white border-bottom py-2 px-3 fw-bold">📋 Preview</div>
-                        <div className="card-body bg-light rounded-bottom-4">
-                          <div className="bg-white rounded-3 p-3 shadow-sm" style={{fontSize:"0.78rem"}}>
-                            <div className="text-muted mb-1">From: <strong>admin@demohome.in</strong></div>
-                            <div className="text-muted mb-2">Subject: <strong>{emailSubject||"—"}</strong></div>
-                            <hr className="my-1"/>
-                            <div style={{whiteSpace:"pre-wrap",color:"#374151",minHeight:60}}>{emailBody||"No content yet..."}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {commTab==="call"&&(
-                  <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                    <div className="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                      <span className="fw-bold">📞 Call List <span className="badge bg-success rounded-pill ms-1">{users.filter((u:any)=>u.phone).length} with phone</span></span>
-                      <select className="form-select form-select-sm" style={{width:"auto"}} onChange={e=>setUserRoleFilter(e.target.value)}>
-                        <option value="all">All Roles</option><option value="farmer">Farmers</option><option value="buyer">Buyers</option><option value="agent">Agents</option><option value="dpartner">D-Partners</option>
-                      </select>
-                    </div>
-                    <div className="table-responsive">
-                      <table className="table table-bordered table-hover table-sm mb-0 align-middle">
-                        <THead cols={["#","Name","Role","Phone","Email","Location","Quick Actions"]}/>
-                        <tbody>
-                          {(userRoleFilter==="all"?users:users.filter((u:any)=>u.role===userRoleFilter)).filter((u:any)=>u.phone||u.email).slice(0,20).map((u:any,i:number)=>(
-                            <tr key={i}>
-                              <td style={{fontSize:12}} className="text-muted">{i+1}</td>
-                              <td className="fw-semibold" style={{fontSize:12}}>{u.name||"—"}</td>
-                              <td>{roleBadge(u.role)}</td>
-                              <td style={{fontSize:12}}>{u.phone?<a href={`tel:${u.phone}`} className="fw-bold text-success text-decoration-none">{u.phone}</a>:"—"}</td>
-                              <td style={{fontSize:11}}>{u.email?<a href={`mailto:${u.email}`} className="text-primary text-decoration-none">{u.email}</a>:"—"}</td>
-                              <td className="text-muted" style={{fontSize:12}}>{u.location||"—"}</td>
-                              <td>
-                                <div className="d-flex gap-1">
-                                  {u.phone&&<><a href={`tel:${u.phone}`} className="btn btn-success btn-sm py-0 px-2" style={{fontSize:"0.72rem"}}>📞</a>
-                                    <a href={`sms:${u.phone}`} className="btn btn-primary btn-sm py-0 px-2" style={{fontSize:"0.72rem"}}>💬</a>
-                                    <a href={`https://wa.me/${u.phone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" className="btn btn-sm py-0 px-2" style={{background:"#25d366",color:"white",fontSize:"0.72rem"}}>💚</a></>}
-                                  {u.email&&<a href={`mailto:${u.email}`} className="btn btn-warning btn-sm py-0 px-2" style={{fontSize:"0.72rem"}}>📧</a>}
-                                  <button className="btn btn-outline-secondary btn-sm py-0 px-2" style={{fontSize:"0.72rem"}} onClick={()=>openContact("users",u)}>More</button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                          {!users.filter((u:any)=>u.phone||u.email).length&&<tr><td colSpan={7} className="text-center text-muted py-4">No users with contact info</td></tr>}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
               </div>
-            )}
+              <button className="btn btn-primary fw-bold w-100 py-2 fs-6"
+                onClick={()=>{
+                  if(!smsText.trim())return flash("❌ SMS text khali hai!",false);
+                  const targetCount=notifTarget==="all"?users.length:notifTarget==="farmer"?farmers.length:notifTarget==="buyer"?buyers.length:notifTarget==="agent"?agents.length:dpartners.length;
+                  const record={id:Date.now().toString(),type:"SMS",target:notifTarget,count:targetCount,message:smsText,sentAt: new Date().toISOString(),status:"sent" as const};
+                  setSendHistory((h:any)=>[record,...h]);
+                  flash(`✅ SMS sent to ${targetCount} ${notifTarget} users!`,true);
+                  setSmsText("");
+                }}>
+                📤 Send SMS to {notifTarget==="all"?`All ${users.length}`:notifTarget==="farmer"?`${farmers.length} Farmers`:notifTarget==="buyer"?`${buyers.length} Buyers`:notifTarget==="agent"?`${agents.length} Agents`:`${dpartners.length} D-Partners`} users
+              </button>
+            </div>
+          </div>
+        </div>
 
-            {/* ════════════════ NOTIFICATIONS ════════════════ */}
-            {activeTab==="notifications"&&(
-              <div>
-                <div className="rounded-4 p-4 mb-4 text-white" style={{background:"linear-gradient(135deg,#d97706,#dc2626)"}}>
-                  <h5 className="fw-bold mb-1">🔔 Push Notifications</h5>
-                  <p className="mb-0 opacity-75" style={{fontSize:13}}>Send push notifications via Firebase or your notification service.</p>
+        <div className="col-md-4">
+          <div className="card border-1 shadow-sm rounded-4 h-100">
+            <div className="card-header bg-white border-bottom py-3 px-4 fw-bold fs-6">📊 Reachable Users</div>
+            <div className="card-body p-3">
+              {[
+                {label:"Total Users",val:users.length,color:"primary"},
+                {label:"With Phone",val:users.filter((u:any)=>u.phone).length,color:"success"},
+                {label:"Farmers",val:farmers.length,color:"success"},
+                {label:"Buyers",val:buyers.length,color:"info"},
+                {label:"Agents",val:agents.length,color:"warning"},
+                {label:"D-Partners",val:dpartners.length,color:"secondary"},
+              ].map(s=>(
+                <div key={s.label} className="d-flex justify-content-between align-items-center py-2 border-bottom">
+                  <span className="form-label fw-semibold fs-6">{s.label}</span>
+                  <span className={`badge bg-${s.color} rounded-pill px-2 fs-7`}>{s.val}</span>
                 </div>
-                <div className="row g-3">
-                  <div className="col-md-7">
-                    <div className="card border-0 shadow-sm rounded-4">
-                      <div className="card-header bg-white border-bottom py-2 px-3 fw-bold">🔔 Send Notification</div>
-                      <div className="card-body">
-                        <div className="mb-3">
-                          <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Target Audience</label>
-                          <div className="d-flex flex-wrap gap-2">
-                            {["all","farmer","buyer","agent","dpartner"].map(t=>(
-                              <button key={t} onClick={()=>setNotifTarget(t)}
-                                className={`btn btn-sm rounded-pill fw-bold ${notifTarget===t?"btn-dark":"btn-outline-secondary"}`}
-                                style={{fontSize:"0.75rem"}}>
-                                {t==="all"?`All (${users.length})`:t==="farmer"?`🌾 Farmers (${farmers.length})`:t==="buyer"?`🛒 Buyers (${buyers.length})`:t==="agent"?`🏪 Agents (${agents.length})`:`🚴 D-Partners (${dpartners.length})`}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Title</label>
-                          <input className="form-control form-control-sm" placeholder="Notification title..." value={notifTitle} onChange={e=>setNotifTitle(e.target.value)}/>
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Message</label>
-                          <textarea className="form-control" rows={3} placeholder="Notification message..." value={notifBody} onChange={e=>setNotifBody(e.target.value)}></textarea>
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Quick Templates</label>
-                          <div className="d-flex gap-2 flex-wrap">
-                            {[{title:"New Products!",body:"Fresh products just arrived!"},{title:"Order Update",body:"Your order status updated."},{title:"Special Offer",body:"Limited time discount!"},{title:"Payment Done",body:"Payment processed!"}].map(n=>(
-                              <button key={n.title} className="btn btn-outline-danger btn-sm" style={{fontSize:"0.72rem"}} onClick={()=>{setNotifTitle(n.title);setNotifBody(n.body);}}>{n.title}</button>
-                            ))}
-                          </div>
-                        </div>
-                        <button className="btn btn-danger fw-bold w-100" onClick={()=>{if(!notifTitle.trim())return flash("❌ Title khali hai!",false);flash(`✅ Notification sent to ${notifTarget} users!`,true);setNotifTitle("");setNotifBody("");}}>
-                          🔔 Send to {notifTarget==="all"?`All ${users.length}`:notifTarget} users
-                        </button>
-                        <small className="text-muted d-block mt-2">⚠️ Integrate Firebase FCM: <code>POST /admin/send-notification</code></small>
+              ))}
+            </div>
+          </div>
+        </div>
+
+    {/* SMS Send History Table */}
+   
+    {sendHistory.filter((h:any)=>h.type==="SMS").length>0&&(
+     <div className="col-12 mt-2">
+     <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
+      <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+        <span className="fw-bold fs-6">📋 SMS Send History</span>
+        <span className="badge bg-primary rounded-pill">{sendHistory.filter((h:any)=>h.type==="SMS").length} sent</span>
+      </div>
+      <div className="table-responsive">
+        <table className="table table-hover table-sm table-bordered mb-0 align-middle">
+          <thead className="table-dark">
+            <tr className="fs-7">
+              {["#","Target","Users Reached","Message Preview","Sent At","Ago","Status"].map(c=>(
+                <th key={c} className="fw-bold" style={{fontSize:"0.75rem"}}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(()=>{
+              const smsData = sendHistory.filter((h:any)=>h.type==="SMS");
+              const totalPages = Math.ceil(smsData.length/HIST_PER_PAGE);
+              const sliced = smsData.slice((smsHistoryPage-1)*HIST_PER_PAGE, smsHistoryPage*HIST_PER_PAGE);
+              return sliced.map((h:any,i:number)=>(
+                <tr key={h.id} className="fs-7">
+                  <td className="fs-7">{(smsHistoryPage-1)*HIST_PER_PAGE+i+1}</td>
+                  <td><span className="badge bg-primary rounded-pill">{h.target}</span></td>
+                  <td>
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="progress flex-grow-1" style={{height:6}}>
+                        <div className="progress-bar bg-success"
+                          style={{width:`${Math.min(100,Math.round((h.count/users.length)*100))}%`}}/>
                       </div>
+                      <span className="fw-bold text-success">{h.count}</span>
                     </div>
-                  </div>
-                  <div className="col-md-5">
-                    <div className="card border-0 shadow-sm rounded-4 mb-3">
-                      <div className="card-header bg-white border-bottom py-2 px-3 fw-bold">📱 Phone Preview</div>
-                      <div className="card-body d-flex justify-content-center py-4">
-                        <div style={{width:240,background:"#0f172a",borderRadius:28,padding:"12px 10px",boxShadow:"0 12px 40px rgba(0,0,0,.3)"}}>
-                          <div style={{background:"#1e293b",borderRadius:20,padding:"10px 12px",minHeight:130}}>
-                            <div className="d-flex align-items-center gap-2 mb-3">
-                              <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#16a34a,#0891b2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1rem"}}>🛡️</div>
-                              <div>
-                                <div style={{color:"white",fontSize:"0.75rem",fontWeight:700}}>DemoHome Admin</div>
-                                <div style={{color:"#94a3b8",fontSize:"0.62rem"}}>now</div>
-                              </div>
-                            </div>
-                            <div style={{color:"white",fontSize:"0.82rem",fontWeight:700,marginBottom:4}}>{notifTitle||"Notification Title"}</div>
-                            <div style={{color:"#94a3b8",fontSize:"0.72rem"}}>{notifBody||"Your message will appear here..."}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="card border-0 shadow-sm rounded-4">
-                      <div className="card-header bg-white border-bottom py-2 px-3 fw-bold">🔧 Integration Steps</div>
-                      <div className="card-body">
-                        {[{s:"1",t:"Add Firebase Admin SDK to backend"},{s:"2",t:"Store FCM tokens in user schema"},{s:"3",t:"Create POST /admin/send-notification"},{s:"4",t:"Connect this UI to that endpoint"}].map(x=>(
-                          <div key={x.s} className="d-flex gap-2 align-items-start mb-2">
-                            <span className="badge bg-danger rounded-circle fw-bold" style={{minWidth:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.72rem"}}>{x.s}</span>
-                            <span style={{fontSize:"0.78rem",color:"#374151"}}>{x.t}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                    <small className="fs-7">{Math.round((h.count/users.length)*100)}% of total users</small>
+                  </td>
+                  <td className="px-3">
+                    <span className="text-truncate d-block fs-7" style={{maxWidth:180}}>{h.message}</span>
+                  </td>
+              <td className="text-muted px-3 fs-7" style={{whiteSpace:"nowrap"}}>{new Date(h.sentAt).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</td>
+               <td className="px-2">
+              <span className="badge bg-light text-dark border fs-7">{timeAgo(h.sentAt)}</span>
+                  </td>
+                  <td><span className="badge bg-success">✓ Sent</span></td>
+                </tr>
+              ));
+            })()}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination + Footer */}
+      {(()=>{
+        const smsData = sendHistory.filter((h:any)=>h.type==="SMS");
+        const totalPages = Math.ceil(smsData.length/HIST_PER_PAGE);
+        if(totalPages<=1) return(
+          <div className="card-footer bg-light py-2 px-4 d-flex align-items-center justify-content-between">
+            <small className="text-muted">Total: <strong>{smsData.length}</strong></small>
+            <small className="text-success fw-semibold">Reached: <strong>{smsData.reduce((s:number,h:any)=>s+h.count,0)}</strong> users</small>
+          </div>
+        );
+        return(
+          <div className="card-footer bg-light py-2 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <small className="text-muted">
+              Showing {(smsHistoryPage-1)*HIST_PER_PAGE+1}–{Math.min(smsHistoryPage*HIST_PER_PAGE,smsData.length)} of {smsData.length} &nbsp;|&nbsp;
+              Reached: <strong className="text-success">{smsData.reduce((s:number,h:any)=>s+h.count,0)}</strong> users
+            </small>
+            <nav>
+              <ul className="pagination pagination-sm mb-0">
+                <li className={`page-item ${smsHistoryPage===1?"disabled":""}`}>
+                  <button className="page-link" onClick={()=>setSmsHistoryPage(p=>p-1)}>«</button>
+                </li>
+                {Array.from({length:totalPages},(_,i)=>i+1).map(n=>(
+                  <li key={n} className={`page-item ${smsHistoryPage===n?"active":""}`}>
+                    <button className="page-link" onClick={()=>setSmsHistoryPage(n)}>{n}</button>
+                  </li>
+                ))}
+                <li className={`page-item ${smsHistoryPage===totalPages?"disabled":""}`}>
+                  <button className="page-link" onClick={()=>setSmsHistoryPage(p=>p+1)}>»</button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        );
+      })()}
+     </div>
+     </div>
+    )}
+    </div>
+    )}
+
+    {/* ── EMAIL TAB ── */}
+    {commTab==="email"&&(
+      <div className="row g-3">
+        <div className="col-md-8">
+          <div className="card border-1 shadow-sm rounded-4">
+            <div className="card-header bg-white border-bottom py-3 px-4 fw-bold fs-6">📧 Bulk Email</div>
+            <div className="card-body p-4">
+              <div className="mb-3">
+                <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Target</label>
+                <select className="form-select form-select-sm" value={notifTarget} onChange={e=>setNotifTarget(e.target.value)}>
+                  <option value="all">All Users ({users.length})</option>
+                  <option value="farmer">Farmers ({farmers.length})</option>
+                  <option value="buyer">Buyers ({buyers.length})</option>
+                  <option value="agent">Agents ({agents.length})</option>
+                </select>
+              </div>
+              <div className="mb-3">
+                <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Subject</label>
+                <input className="form-control form-control-sm" placeholder="Email subject..."
+                  value={emailSubject} onChange={e=>setEmailSubject(e.target.value)}/>
+              </div>
+              <div className="mb-3">
+                <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Body</label>
+                <textarea className="form-control" rows={5} placeholder="Compose email..."
+                  value={emailBody} onChange={e=>setEmailBody(e.target.value)}/>
+              </div>
+              <div className="mb-4">
+                <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Quick Templates</label>
+                <div className="d-flex gap-2 flex-wrap">
+                  {[
+                    {subj:"Order Confirmed",body:"Dear User,\n\nYour order is confirmed!\n\nDemoHome Team"},
+                    {subj:"New Products",body:"Dear User,\n\nNew products available. Check them out!\n\nDemoHome"},
+                    {subj:"Payment Done",body:"Dear User,\n\nPayment received successfully.\n\nDemoHome"},
+                  ].map(t=>(
+                    <button key={t.subj} className="btn btn-outline-warning btn-sm rounded-pill" style={{fontSize:"0.72rem"}}
+                      onClick={()=>{setEmailSubject(t.subj);setEmailBody(t.body);}}>{t.subj}</button>
+                  ))}
                 </div>
               </div>
-            )}
+              <button className="btn btn-warning fw-bold w-100 py-2" style={{fontSize:"0.9rem"}}
+                onClick={()=>{
+                  if(!emailSubject.trim()||!emailBody.trim())return flash("❌ Subject ya body khali hai!",false);
+                  const targetCount=notifTarget==="all"?users.length:notifTarget==="farmer"?farmers.length:notifTarget==="buyer"?buyers.length:agents.length;
+                  const record={id:Date.now().toString(),type:"Email",target:notifTarget,count:targetCount,subject:emailSubject,message:emailBody,sentAt: new Date().toISOString(),status:"sent" as const};
+                  setSendHistory((h:any)=>[record,...h]);
+                  flash(`✅ Email sent to ${targetCount} ${notifTarget} users!`,true);
+                  setEmailSubject("");setEmailBody("");
+                }}>
+                📧 Send Email Campaign
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-4">
+          <div className="card border-1 shadow-sm rounded-4 mb-3">
+            <div className="card-header bg-white border-bottom py-3 px-4 fw-bold">📋 Live Preview</div>
+            <div className="card-body bg-light rounded-bottom-4">
+              <div className="bg-white rounded-3 p-3 shadow-sm" style={{fontSize:"0.78rem"}}>
+                <div className="text-muted mb-1">From: <strong>admin@demohome.in</strong></div>
+                <div className="text-muted mb-2">To: <strong>{notifTarget} users</strong></div>
+                <div className="text-muted mb-2">Subject: <strong>{emailSubject||"—"}</strong></div>
+                <hr className="my-2"/>
+                <div style={{whiteSpace:"pre-wrap",color:"#374151",minHeight:60}}>{emailBody||"No content yet..."}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+     {/* Email Send History */}
+    {sendHistory.filter((h:any)=>h.type==="Email").length>0&&(
+    <div className="col-12 mt-2">
+    <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
+      <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+        <span className="fw-bold fs-6">📋 Email Send History</span>
+        <span className="badge bg-warning text-dark rounded-pill">{sendHistory.filter((h:any)=>h.type==="Email").length} campaigns</span>
+      </div>
+      <div className="table-responsive">
+        <table className="table table-hover table-sm table-bordered mb-0 align-middle">
+          <thead className="table-dark">
+            <tr>
+              {["#","Target","Users Reached","Subject","Message Preview","Sent At","Ago","Status"].map(c=>(
+                <th key={c} style={{fontSize:"0.75rem",fontWeight:600}}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(()=>{
+              const emailData = sendHistory.filter((h:any)=>h.type==="Email");
+              const totalPages = Math.ceil(emailData.length/HIST_PER_PAGE);
+              const sliced = emailData.slice((emailHistoryPage-1)*HIST_PER_PAGE, emailHistoryPage*HIST_PER_PAGE);
+              return sliced.map((h:any,i:number)=>(
+                <tr key={h.id} style={{fontSize:"0.8rem"}}>
+                  <td className="text-muted">{(emailHistoryPage-1)*HIST_PER_PAGE+i+1}</td>
+                  <td><span className="badge bg-warning text-dark rounded-pill">{h.target}</span></td>
+                  <td>
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="progress flex-grow-1" style={{height:6}}>
+                        <div className="progress-bar bg-warning" style={{width:`${Math.min(100,Math.round((h.count/users.length)*100))}%`}}/>
+                      </div>
+                      <span className="fw-bold text-warning">{h.count}</span>
+                    </div>
+                    <small className="text-muted">{Math.round((h.count/users.length)*100)}% of total users</small>
+                  </td>
+                  <td className="fw-semibold">{h.subject||"—"}</td>
+                  <td style={{maxWidth:160}}>
+                    <span className="text-truncate d-block" style={{maxWidth:150}}>{h.message.slice(0,50)}…</span>
+                  </td>
+                  <td className="text-muted px-3" style={{whiteSpace:"nowrap",fontSize:"0.75rem"}}>{new Date(h.sentAt).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</td>
+                   <td className="px-2">
+                    <span className="badge bg-light text-dark border" style={{fontSize:"0.68rem"}}>{timeAgo(h.sentAt)}</span>
+                      </td>
+                  <td><span className="badge bg-success">✓ Sent</span></td>
+                </tr>
+              ));
+            })()}
+          </tbody>
+        </table>
+      </div>
+      {(()=>{
+        const emailData = sendHistory.filter((h:any)=>h.type==="Email");
+        const totalPages = Math.ceil(emailData.length/HIST_PER_PAGE);
+        if(totalPages<=1) return(
+          <div className="card-footer bg-light py-2 px-4 d-flex align-items-center justify-content-between">
+            <small className="text-muted">Total campaigns: <strong>{emailData.length}</strong></small>
+            <small className="text-warning fw-semibold">Total reached: <strong>{emailData.reduce((s:number,h:any)=>s+h.count,0)}</strong> users</small>
+          </div>
+        );
+        return(
+          <div className="card-footer bg-light py-2 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <small className="text-muted">
+              Showing {(emailHistoryPage-1)*HIST_PER_PAGE+1}–{Math.min(emailHistoryPage*HIST_PER_PAGE,emailData.length)} of {emailData.length} &nbsp;|&nbsp;
+              Reached: <strong className="text-warning">{emailData.reduce((s:number,h:any)=>s+h.count,0)}</strong> users
+            </small>
+            <nav>
+              <ul className="pagination pagination-sm mb-0">
+                <li className={`page-item ${emailHistoryPage===1?"disabled":""}`}>
+                  <button className="page-link" onClick={()=>setEmailHistoryPage(p=>p-1)}>«</button>
+                </li>
+                {Array.from({length:totalPages},(_,i)=>i+1).map(n=>(
+                  <li key={n} className={`page-item ${emailHistoryPage===n?"active":""}`}>
+                    <button className="page-link" onClick={()=>setEmailHistoryPage(n)}>{n}</button>
+                  </li>
+                ))}
+                <li className={`page-item ${emailHistoryPage===totalPages?"disabled":""}`}>
+                  <button className="page-link" onClick={()=>setEmailHistoryPage(p=>p+1)}>»</button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        );
+      })()}
+     </div>
+    </div>
+     )}
+      </div>
+    )}
+
+    {/* ── CALL TAB ── */}
+    {commTab==="call"&&(
+      <div className="card border-1 shadow-sm rounded-4 overflow-hidden">
+        <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div className="d-flex align-items-center gap-2">
+            <span className="fw-bold fs-6">📞 Call List</span>
+            <span className="badge bg-success rounded-pill">{users.filter((u:any)=>u.phone).length} with phone</span>
+            <span className="badge bg-warning text-dark rounded-pill">{users.filter((u:any)=>u.email).length} with email</span>
+          </div>
+          <select className="form-select form-select-sm" style={{width:"auto"}} onChange={e=>setUserRoleFilter(e.target.value)}>
+            <option value="all">All Roles</option>
+            <option value="farmer">Farmers</option>
+            <option value="buyer">Buyers</option>
+            <option value="agent">Agents</option>
+            <option value="dpartner">D-Partners</option>
+          </select>
+        </div>
+        <div className="table-responsive">
+          <table className="table table-bordered table-hover table-sm mb-0 align-middle">
+            <THead cols={["#","Name","Role","Phone","Email","Location","Quick Actions"]}/>
+            <tbody>
+              {(userRoleFilter==="all"?users:users.filter((u:any)=>u.role===userRoleFilter))
+                .filter((u:any)=>u.phone||u.email).slice(0,20).map((u:any,i:number)=>(
+                <tr key={i}>
+                  <td className="text-muted" style={{fontSize:12}}>{i+1}</td>
+                  <td className="fw-semibold" style={{fontSize:12}}>{u.name||"—"}</td>
+                  <td>{roleBadge(u.role)}</td>
+                  <td style={{fontSize:12}}>
+                    {u.phone?<a href={`tel:${u.phone}`} className="fw-bold text-success text-decoration-none">{u.phone}</a>:"—"}
+                  </td>
+                  <td style={{fontSize:11}}>
+                    {u.email?<a href={`mailto:${u.email}`} className="text-primary text-decoration-none">{u.email}</a>:"—"}
+                  </td>
+                  <td className="text-muted" style={{fontSize:12}}>{u.location||"—"}</td>
+                  <td>
+                    <div className="d-flex gap-1 flex-wrap">
+                      {u.phone&&<>
+                        <a href={`tel:${u.phone}`} className="btn btn-success btn-sm py-0 px-2" style={{fontSize:"0.72rem"}}>📞</a>
+                        <a href={`sms:${u.phone}`} className="btn btn-primary btn-sm py-0 px-2" style={{fontSize:"0.72rem"}}>💬</a>
+                        <a href={`https://wa.me/${u.phone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
+                          className="btn btn-sm py-0 px-2" style={{background:"#25d366",color:"white",fontSize:"0.72rem"}}>💚</a>
+                      </>}
+                      {u.email&&<a href={`mailto:${u.email}`} className="btn btn-warning btn-sm py-0 px-2" style={{fontSize:"0.72rem"}}>📧</a>}
+                      <button className="btn btn-outline-secondary btn-sm py-0 px-2" style={{fontSize:"0.72rem"}} onClick={()=>openContact("users",u)}>More</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!users.filter((u:any)=>u.phone||u.email).length&&(
+                <tr><td colSpan={7} className="text-center text-muted py-4">No users with contact info</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+    </div>
+    );
+  })()}
+
+
+ {/* ═══════════ NOTIFICATIONS ══════════════ */}
+{activeTab==="notifications"&&(()=>{
+  return(
+   <div className="d-flex flex-column gap-4">
+    {/* Hero */}
+    <div className="rounded-4 p-4 py-3 mb-4 text-white position-relative overflow-hidden"
+      style={{background:"linear-gradient(135deg,#d97706,#dc2626)"}}>
+      <div className="position-absolute top-0 end-0 opacity-10 fs-1">🔔</div>
+      <h5 className="fw-bold mb-1">🔔 Push Notifications</h5>
+      <p className="mb-0 opacity-75" style={{fontSize:13}}>Send push notifications via Firebase or your notification service.</p>
+      <div className="d-flex gap-2 mt-3 flex-wrap">
+        <div className="rounded-3 px-3 py-1" style={{background:"rgba(255,255,255,0.15)"}}>
+          <div className="fw-bold fw-6">Total Sent</div>
+          <div className="fw-bold">{notifHistory.length}</div>
+        </div>
+        <div className="rounded-3 px-3 py-1" style={{background:"rgba(255,255,255,0.15)"}}>
+          <div className="fw-bold fw-6">Users Reached</div>
+          <div className="fw-bold">{notifHistory.reduce((s:number,h:any)=>s+h.count,0)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div className="row g-3">
+      {/* Send form */}
+      <div className="col-md-7">
+        <div className="card border-1 shadow-sm rounded-4">
+          <div className="card-header bg-white border-bottom py-3 px-4 fw-bold fs-6">🔔 Send Notification</div>
+          <div className="card-body p-4">
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Target Audience</label>
+              <div className="d-flex flex-wrap gap-2">
+                {["all","farmer","buyer","agent","dpartner"].map(t=>(
+                  <button key={t} onClick={()=>setNotifTarget(t)}
+                    className={`btn btn-sm rounded-pill fw-bold ${notifTarget===t?"btn-dark":"btn-outline-secondary"}`}
+                    style={{fontSize:"0.75rem"}}>
+                    {t==="all"?`🌐 All (${users.length})`:t==="farmer"?`🌾 Farmers (${farmers.length})`:t==="buyer"?`🛒 Buyers (${buyers.length})`:t==="agent"?`🏪 Agents (${agents.length})`:`🚴 D-Partners (${dpartners.length})`}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Title</label>
+              <input className="form-control form-control-sm" placeholder="Notification title..."
+                value={notifTitle} onChange={e=>setNotifTitle(e.target.value)}/>
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Message</label>
+              <textarea className="form-control" rows={3} placeholder="Notification message..."
+                value={notifBody} onChange={e=>setNotifBody(e.target.value)}/>
+            </div>
+            <div className="mb-4">
+              <label className="form-label fw-semibold" style={{fontSize:"0.82rem"}}>Quick Templates</label>
+              <div className="d-flex gap-2 flex-wrap">
+                {[
+                  {title:"New Products!",body:"Fresh products just arrived!"},
+                  {title:"Order Update",body:"Your order status updated."},
+                  {title:"Special Offer",body:"Limited time discount!"},
+                  {title:"Payment Done",body:"Payment processed!"},
+                ].map(n=>(
+                  <button key={n.title} className="btn btn-outline-danger btn-sm rounded-pill" style={{fontSize:"0.72rem"}}
+                    onClick={()=>{setNotifTitle(n.title);setNotifBody(n.body);}}>{n.title}</button>
+                ))}
+              </div>
+            </div>
+            <button className="btn btn-danger fw-bold w-100 py-2" style={{fontSize:"0.9rem"}}
+              onClick={()=>{
+                if(!notifTitle.trim())return flash("❌ Title khali hai!",false);
+                const targetCount=notifTarget==="all"?users.length:notifTarget==="farmer"?farmers.length:notifTarget==="buyer"?buyers.length:notifTarget==="agent"?agents.length:dpartners.length;
+                const record={id:Date.now().toString(),type:"Push",target:notifTarget,count:targetCount,subject:notifTitle,message:notifBody,sentAt: new Date().toISOString(),status:"sent" as const};
+                setNotifHistory((h:any)=>[record,...h]);
+                flash(`✅ Notification sent to ${targetCount} ${notifTarget} users!`,true);
+                setNotifTitle("");setNotifBody("");
+              }}>
+              🔔 Send to {notifTarget==="all"?`All ${users.length}`:notifTarget==="farmer"?`${farmers.length} Farmers`:notifTarget==="buyer"?`${buyers.length} Buyers`:notifTarget==="agent"?`${agents.length} Agents`:`${dpartners.length} D-Partners`} users
+            </button>
+            <small className="text-muted d-block mt-2">⚠️ Integrate Firebase FCM: <code>POST /admin/send-notification</code></small>
+          </div>
+        </div>
+      </div>
+
+      {/* Phone preview + steps */}
+      <div className="col-md-5">
+        <div className="card border-1 shadow-sm rounded-4 mb-3">
+          <div className="card-header bg-white border-bottom py-2 px-3 fw-bold">📱 Phone Preview</div>
+          <div className="card-body d-flex justify-content-center py-4">
+            <div style={{width:240,background:"#0f172a",borderRadius:28,padding:"12px 10px",boxShadow:"0 12px 40px rgba(0,0,0,.3)"}}>
+              <div style={{background:"#1e293b",borderRadius:20,padding:"10px 12px",minHeight:130}}>
+                <div className="d-flex align-items-center gap-2 mb-3">
+                  <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#16a34a,#0891b2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1rem"}}>🛡️</div>
+                  <div>
+                    <div style={{color:"white",fontSize:"0.75rem",fontWeight:700}}>KisanMilan Admin</div>
+                    <div style={{color:"#94a3b8",fontSize:"0.62rem"}}>now</div>
+                  </div>
+                </div>
+                <div style={{color:"white",fontSize:"0.82rem",fontWeight:700,marginBottom:4}}>{notifTitle||"Notification Title"}</div>
+                <div style={{color:"#94a3b8",fontSize:"0.72rem"}}>{notifBody||"Your message will appear here..."}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="card border-1 shadow-sm rounded-4">
+          <div className="card-header bg-white border-bottom py-2 px-3 fw-bold">🔧 Integration Steps</div>
+          <div className="card-body">
+            {[
+              {s:"1",t:"Add Firebase Admin SDK to backend"},
+              {s:"2",t:"Store FCM tokens in user schema"},
+              {s:"3",t:"Create POST /admin/send-notification"},
+              {s:"4",t:"Connect this UI to that endpoint"},
+            ].map(x=>(
+              <div key={x.s} className="d-flex gap-2 align-items-start mb-2">
+                <span className="badge bg-danger rounded-circle fw-bold d-flex align-items-center justify-content-center"
+                  style={{minWidth:22,height:22,fontSize:"0.72rem"}}>{x.s}</span>
+                <span style={{fontSize:"0.78rem",color:"#374151"}}>{x.t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Notification History Table */}
+
+ {notifHistory.length>0&&(()=>{
+  const HIST_PER_PAGE = 5;
+  const totalPages = Math.ceil(notifHistory.length/HIST_PER_PAGE);
+  const sliced = notifHistory.slice((notifHistoryPage-1)*HIST_PER_PAGE, notifHistoryPage*HIST_PER_PAGE);
+  const totalReached = notifHistory.reduce((s:number,h:any)=>s+h.count,0);
+  const avgCoverage = notifHistory.length>0
+    ? Math.round(notifHistory.reduce((s:number,h:any)=>s+Math.round((h.count/(users.length||1))*100),0)/notifHistory.length)
+    : 0;
+
+  return(
+  <div className="col-12">
+    <div className="card border-1 shadow rounded-4 overflow-hidden"
+      style={{border:"1.5px solid #fee2e2 !important"}}>
+
+      {/* ── Card Header ── */}
+      <div className="card-header py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2"
+        style={{background:"linear-gradient(135deg,#fff5f5,#fff)",borderBottom:"2px solid #fecaca"}}>
+        <div className="d-flex align-items-center gap-2 flex-wrap">
+          <span className="fw-bold fs-6">📋 Notification History</span>
+          <span className="badge bg-danger rounded-pill px-2">{notifHistory.length} total</span>
+          <span className="badge bg-success rounded-pill px-2">{totalReached} reached</span>
+        </div>
+        <div className="d-flex align-items-center gap-2">
+          <small className="text-muted" style={{fontSize:"0.78rem"}}>
+            Avg coverage: <strong className="text-primary">{avgCoverage}%</strong>
+          </small>
+          <button className="btn btn-outline-danger btn-sm py-0 px-3 fw-semibold" style={{fontSize:"0.75rem"}}
+            onClick={()=>{setNotifHistory([]); setNotifHistoryPage(1); localStorage.removeItem("admin_notifHistory"); flash("✅ Notification history cleared!",true);}}>
+            🗑 Clear
+          </button>
+        </div>
+      </div>
+
+      {/* ── Table ── */}
+      <div className="table-responsive">
+        <table className="table table-hover table-sm table-bordered mb-0 align-middle">
+          <thead style={{background:"#1e293b"}}>
+            <tr>
+              {["#","Target","Users Reached","% Coverage","Title","Message","Sent At","Ago","Status"].map(c=>(
+                <th key={c} className="text-white fw-semibold text-nowrap py-2 px-3"
+                  style={{fontSize:"0.75rem",fontWeight:600}}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sliced.map((h:any,i:number)=>{
+              const pct = users.length>0 ? Math.round((h.count/users.length)*100) : 0;
+              const rowNum = (notifHistoryPage-1)*HIST_PER_PAGE+i+1;
+              return(
+                <tr key={h.id} className={`align-middle fs-7 ${i%2===0?"table-white":"table-light"}`}>
+                  <td className="fs-7 fw-semibold px-3">{rowNum}</td>
+                  <td className="px-3">
+                    <span className={`badge rounded-pill px-2 py-1 bg-${
+                      h.target==="all"?"dark":h.target==="farmer"?"success":
+                      h.target==="buyer"?"primary":h.target==="agent"?"warning":"secondary"}`}
+                      style={{fontSize:"0.72rem"}}>
+                      {h.target==="all"?"🌐 All":h.target==="farmer"?"🌾 Farmers":
+                       h.target==="buyer"?"🛒 Buyers":h.target==="agent"?"🏪 Agents":"🚴 D-Partners"}
+                    </span>
+                  </td>
+                  <td className="px-3">
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="fw-bold text-success fs-6">{h.count}</span>
+                      <small className="fs-7">users</small>
+                    </div>
+                  </td>
+                  <td className="px-3">
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="progress rounded-pill" style={{height:8,width:70,background:"#e2e8f0"}}>
+                        <div className={`progress-bar rounded-pill ${pct>70?"bg-success":pct>40?"bg-warning":"bg-danger"}`}
+                          style={{width:`${pct}%`,transition:"width .4s"}}/>
+                      </div>
+                      <small className={`fw-bold ${pct>70?"text-success":pct>40?"text-warning":"text-danger"}`}>
+                        {pct}%
+                      </small>
+                    </div>
+                  </td>
+                  <td className="fw-semibold px-3" style={{maxWidth:120}}>
+                    <span className="text-truncate d-block" style={{maxWidth:110}}>{h.subject}</span>
+                  </td>
+                  <td className="px-3" style={{maxWidth:150}}>
+                    <span className="text-truncate d-block fs-7" style={{maxWidth:140,fontSize:"0.75rem"}}>{h.message}</span>
+                  </td>
+              
+                 <td className="fs-7 px-3" style={{whiteSpace:"nowrap",fontSize:"0.75rem"}}>{new Date(h.sentAt).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</td>
+                  <td className="px-2">
+                    <span className="badge bg-light text-dark border" style={{fontSize:"0.68rem"}}>{timeAgo(h.sentAt)}</span>
+                    </td>
+                 <td><span className="badge bg-success">✓ Sent</span></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── Footer ── */}
+      <div className="card-footer p-0" style={{borderTop:"2px solid #fecaca"}}>
+
+        {/* Stats row */}
+        <div className="row g-0 text-center border-bottom" style={{borderColor:"#fecaca"}}>
+          {[
+            {label:"Total Campaigns", val:notifHistory.length,      color:"danger",  icon:"📣"},
+            {label:"Total Reached",   val:totalReached,             color:"success", icon:"👥"},
+            {label:"Avg Coverage",    val:`${avgCoverage}%`,        color:"primary", icon:"📊"},
+            {label:"Latest",          val:sliced[0]?.subject||"—",  color:"warning", icon:"🔔"},
+          ].map((s,idx)=>(
+            <div key={s.label} className={`col-6 col-md-3 py-3 px-2${idx<3?" border-end":""}`}
+              style={{borderColor:"#fecaca"}}>
+              <div style={{fontSize:"1.2rem"}}>{s.icon}</div>
+              <div className={`fw-bold fs-5 text-${s.color}`}
+                style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:90,margin:"0 auto",fontSize:s.label==="Latest"?"0.7rem":"inherit"}}>
+                {s.val}
+              </div>
+              <small className="text-muted" style={{fontSize:"0.7rem"}}>{s.label}</small>
+            </div>
+          ))}
+        </div>
+
+        {/* Pagination row */}
+        {totalPages>1&&(
+          <div className="d-flex align-items-center justify-content-between px-4 py-2 flex-wrap gap-2"
+            style={{background:"#fff5f5"}}>
+            <small className="text-muted" style={{fontSize:"0.78rem"}}>
+              Showing <strong>{(notifHistoryPage-1)*HIST_PER_PAGE+1}</strong>–<strong>{Math.min(notifHistoryPage*HIST_PER_PAGE,notifHistory.length)}</strong> of <strong>{notifHistory.length}</strong> notifications
+            </small>
+            <nav>
+              <ul className="pagination pagination-sm mb-0 gap-1">
+                <li className={`page-item ${notifHistoryPage===1?"disabled":""}`}>
+                  <button className="page-link rounded-2 border-1 fw-bold"
+                    style={{background:notifHistoryPage===1?"#f1f5f9":"#fee2e2",color:"#dc2626"}}
+                    onClick={()=>setNotifHistoryPage(p=>p-1)}>«</button>
+                </li>
+                {Array.from({length:totalPages},(_,i)=>i+1).map(n=>(
+                  <li key={n} className="page-item">
+                    <button className="page-link rounded-2 border-1 fw-bold"
+                      style={{
+                        background:notifHistoryPage===n?"#dc2626":"#fff",
+                        color:notifHistoryPage===n?"#fff":"#dc2626",
+                        border: notifHistoryPage===n?"none":"1px solid #fecaca",
+                      }}
+                      onClick={()=>setNotifHistoryPage(n)}>{n}</button>
+                  </li>
+                ))}
+                <li className={`page-item ${notifHistoryPage===totalPages?"disabled":""}`}>
+                  <button className="page-link rounded-2 border-1 fw-bold"
+                    style={{background:notifHistoryPage===totalPages?"#f1f5f9":"#fee2e2",color:"#dc2626"}}
+                    onClick={()=>setNotifHistoryPage(p=>p+1)}>»</button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        )}
+      </div>
+
+    </div>
+  </div>
+  );
+ })()}
+    </div>
+  </div>
+  );
+})()}
 
           </>}
         </main>
       </div>
-
       {/* ════ MODALS ════ */}
       <ViewModal/>
       <EditModal/>

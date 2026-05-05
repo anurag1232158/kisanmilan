@@ -218,13 +218,8 @@ export default function MarketPage() {
         )}
 
         {loading ? (
-          <div className="text-center mt-5">
-            <div className="spinner-border text-success mb-3" />
-            <div className="progress w-50 mx-auto" style={{ height: "8px" }}>
-              <div className="progress-bar bg-success" style={{ width: `${progress}%` }} />
-            </div>
-            <small className="text-muted d-block mt-2">Loading... {progress}%</small>
-          </div>
+          <>
+          </>
         ) : (
           <>
             {/* Count */}

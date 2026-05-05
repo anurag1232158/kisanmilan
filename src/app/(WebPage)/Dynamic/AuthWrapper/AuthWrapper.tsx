@@ -2,7 +2,18 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useSessionTimeout } from "./Timeout/UseSessionTimeout";
+
+
+const AdminOnlyWrapper = dynamic(
+  () => import("../../../(AdminPage)/Dynamic/AdminOnlyWrapper/AdminNavFooter"),
+  { ssr: false }
+);
+const ClientOnlyWrapper = dynamic(
+  () => import("../ClientOnlyWrapper/UserNavFooter"),
+  { ssr: false }
+);
 
 export default function AuthWrapper({
   children,
@@ -26,6 +37,7 @@ export default function AuthWrapper({
 
     let savedUser: string | null = null;
     if (typeof window !== "undefined") {
+      // ✅ 'user' key use karo — 'authUser' nahi
       savedUser = localStorage.getItem("user");
     }
 
@@ -46,6 +58,7 @@ export default function AuthWrapper({
     try {
       const parsed = JSON.parse(savedUser);
 
+      // Expiry check
       if (parsed.expiry && Date.now() > parsed.expiry) {
         localStorage.removeItem("user");
         localStorage.removeItem("token");
@@ -57,10 +70,10 @@ export default function AuthWrapper({
       if (parsed.role === "admin") {
         setRole("admin");
       } else if (
-        parsed.role === "user"    ||
-        parsed.role === "buyer"   ||
-        parsed.role === "farmer"  ||
-        parsed.role === "agent"   ||
+        parsed.role === "user"   ||
+        parsed.role === "buyer"  ||
+        parsed.role === "farmer" ||
+        parsed.role === "agent"  ||
         parsed.role === "dpartner"
       ) {
         setRole("user");
@@ -78,22 +91,18 @@ export default function AuthWrapper({
     }
   }, [pathname, router]);
 
-  // Auth pages — seedha render karo
   if (
     pathname === "/Login" ||
     pathname === "/Register" ||
     pathname === "/AdminLogin" ||
     pathname === "/AdminRegister"
-  ) {
+  )
     return <>{children}</>;
-  }
 
-  // Admin pages — role check karo
   if (pathname.startsWith("/Admin")) {
     if (role !== "admin") return null;
-    return <>{children}</>;
+    return <AdminOnlyWrapper>{children}</AdminOnlyWrapper>;
   }
 
-  // Baaki sab pages
-  return <>{children}</>;
-}
+  return <ClientOnlyWrapper>{children}</ClientOnlyWrapper>;
+} 

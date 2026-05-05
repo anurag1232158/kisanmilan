@@ -18,7 +18,7 @@ const PageFooter = () => {
             <FooterOne />
 
             {/* FOOTER RIGHT SECTION */}
-            <div className="col-lg-8 col-md-12 col-sm-12 col-12 justify-content-end mt-4 mt-lg-0">
+            <div className="col-lg-8 col-md-12 col-sm-12 col-12 justify-content-end mt-2 mt-lg-4 mt-lg-0">
               <div className="row gx-5">
                 <FooterTwo />
                 <FooterThree />

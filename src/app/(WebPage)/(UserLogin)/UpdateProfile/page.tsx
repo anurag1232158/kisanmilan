@@ -241,7 +241,7 @@ export default function UpdateProfilePage() {
                   className={`up-save-btn${saved ? " saved" : ""}`}
                 >
                   {loading ? (
-                    <><div className="up-btn-spinner" /> Saving...</>
+                    <></>
                   ) : saved ? (
                     <>✓ Saved!</>
                   ) : (

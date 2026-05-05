@@ -231,10 +231,10 @@ export default function ProductsPage() {
       <div className="bg-success rounded-3 border-bottom shadow-sm text-light">
         <div className="container text-light py-3 d-flex justify-content-between align-items-center">
          <div className="d-flex flex-column">
-          <h4 className="mb-0 fw-bold">🌾🌾Total Products ({filteredProducts.length})</h4>
+          <h5 className="mb-0 fw-bold">🌾🌾Total Products ({filteredProducts.length})</h5>
           <small className="opacity-75">Fresh Products & Rates Available Here 🌾🌾</small>
         </div>
-        <Link href="/ProductAdd" className="btn btn-light px-3 py-1 btn-sm fw-semibold">
+        <Link href="/ProductAdd" className="btn btn-light px-2 px-lg-2 py-lg-1 btn-sm fw-semibold">
           ➕ Add to Product
         </Link>
       </div>

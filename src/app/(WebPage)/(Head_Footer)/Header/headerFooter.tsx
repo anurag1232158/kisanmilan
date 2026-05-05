@@ -18,7 +18,7 @@ const HeaderFooter = () => {
       const parsed = JSON.parse(stored);
       const validRoles = ["farmer", "buyer", "agent", "dpartner", "admin"];
       if (parsed && validRoles.includes(parsed.role)) {
-        setUser(parsed);
+        setUser(parsed); 
       } else { 
         setUser(null);
       }
@@ -116,10 +116,15 @@ const fetchCartCount = useCallback(async () => {
 
   // ✅ Show wishlist + cart for buyers, farmers, dpartners
   const showWishlistCart = isBuyer || isFarmer || isDeliveryPartner;
-
+const closeNavbar = () => {
+  const navbar = document.getElementById('navbarNav');
+  if (navbar && navbar.classList.contains('show')) {
+    navbar.classList.remove('show');
+  }
+};
   return (
     <>
-      <nav className={`navbar navbar-expand-lg px-md-5 py-2 sticky-top bg-white ${scrolled ? "shadow-sm" : ""}`}
+      <nav className={`navbar navbar-expand-lg px-md-5 p-2 sticky-top bg-white ${scrolled ? "shadow-sm" : ""}`}
         style={{ transition: "box-shadow 0.2s", borderBottom: "1px solid #e9ecef", zIndex: 1030 }}>
       
         {/* ── Logo ── */}
@@ -129,42 +134,44 @@ const fetchCartCount = useCallback(async () => {
         </Link>
 
         {/* ── Mobile Toggle ── */}
-        <button className="btn btn-sm navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"> <span className="navbar-toggler-icon" /></button>
-        <div className="collapse navbar-collapse" id="navbarNav">
-          
-          {/* ── Center Nav Links ── */}
+        <button className="btn btn-sm navbar-toggler border text-dark" 
+        type="button"  data-bs-toggle="collapse" data-bs-target="#navbarNav"> 
+         <span className="navbar-toggler-icon text-dark" />
+        </button>
+
+          <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav mx-auto gap-1">
             {!isAgent && (
               <li className="nav-item">
-                <Link href="/Product" className={nav("/Product")}>🛒 Products</Link>
+                <Link href="/Product" className={nav("/Product")} onClick={closeNavbar}>🛒 Products</Link>
               </li>
-            )}
+              )}
 
             <li className="nav-item">
-              <Link href="/Rates" className={nav("/Rates")}>
+              <Link href="/Rates" className={nav("/Rates")} onClick={closeNavbar}>
                 {isAgent ? "🏪 Add Rate" : "📊 Mandi Rates"}
               </Link>
             </li>
 
             {(isBuyer || isFarmer) && (
               <li className="nav-item">
-                <Link href="/Orders" className={nav("/Orders")}>📦 Orders</Link>
+                <Link href="/Orders" className={nav("/Orders")} onClick={closeNavbar}>📦 Orders</Link>
               </li>
             )}
 
             {isFarmer && (
               <li className="nav-item">
-                <Link href="/ProductAdd" className={nav("/ProductAdd")}>➕ Add Product</Link>
+                <Link href="/ProductAdd" className={nav("/ProductAdd")} onClick={closeNavbar}>➕ Add Product</Link>
               </li>
             )}
 
             {isAgent && (
               <>
                 <li className="nav-item">
-                  <Link href="/Dashboard" className={nav("/Dashboard")}>📊 Dashboard</Link>
+                  <Link href="/Dashboard" className={nav("/Dashboard")} onClick={closeNavbar}>📊 Dashboard</Link>
                 </li>
                 <li className="nav-item">
-                  <Link href="/Product" className={nav("/Product")}>🔍 View Products</Link>
+                  <Link href="/Product" className={nav("/Product")} onClick={closeNavbar}>🔍 View Products</Link>
                 </li>
               </>
             )}
@@ -172,10 +179,10 @@ const fetchCartCount = useCallback(async () => {
             {isDeliveryPartner && (
               <>
                 <li className="nav-item">
-                  <Link href="/Orders" className={nav("/Orders")}>📦 Assigned Orders</Link>
+                  <Link href="/Orders" className={nav("/Orders")} onClick={closeNavbar}>📦 Assigned Orders</Link>
                 </li>
                 <li className="nav-item">
-                  <Link href="/Delivery" className={nav("/Delivery")}>🚚 Deliveries</Link>
+                  <Link href="/Delivery" className={nav("/Delivery")} onClick={closeNavbar}>🚚 Deliveries</Link>
                 </li>
               </>
             )}
@@ -187,7 +194,7 @@ const fetchCartCount = useCallback(async () => {
             {/* ✅ Wishlist Icon with badge */}
             {showWishlistCart && user && (
               <>
-                <Link href="/Wishlist" className="position-relative text-decoration-none" title="Wishlist" style={{ lineHeight: 1 }}>
+                <Link href="/Wishlist" className="position-relative text-decoration-none" title="Wishlist" style={{ lineHeight: 1 }} onClick={closeNavbar}>
                   <span style={{ fontSize: 22 }}>❤️</span>
                   
                   {wishlistCount > 0 && (
@@ -199,7 +206,7 @@ const fetchCartCount = useCallback(async () => {
                 </Link>
 
                 {/* ✅ Cart Icon with badge */}
-                <Link  href="/Cart"  className="position-relative text-decoration-none"  title="Cart"  style={{ lineHeight: 1 }}>
+                <Link  href="/Cart"  className="position-relative text-decoration-none"  title="Cart"  style={{ lineHeight: 1 }} onClick={closeNavbar}>
                   <span style={{ fontSize: 22 }}>🛒</span>
                   {cartCount > 0 && (
                     <span  className="position-absolute badge rounded-pill bg-success" 

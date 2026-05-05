@@ -507,9 +507,8 @@ export default function AddProductPage() {
                                   style={{ maxHeight: 220, objectFit: "cover" }}
                                 />
                                 {imageLoading ? (
-                                  <div className="text-warning small fw-semibold">
-                                    ⏳ Uploading...
-                                  </div>
+                                  <>
+                                  </>
                                 ) : imageUrl ? (
                                   <div className="text-success small fw-semibold">
                                     ✅ Uploaded! Click to change
@@ -602,8 +601,6 @@ export default function AddProductPage() {
                               </>
                             ) : imageLoading ? (
                               <>
-                                <span className="spinner-border spinner-border-sm me-2" />
-                                Uploading...
                               </>
                             ) : !imageUrl ? (
                               "Pehle Image Upload Karo"

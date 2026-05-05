@@ -173,9 +173,8 @@ export default function Dashboard() {
     }
   };
   if (loading) return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center">
-      <div className="spinner-border text-success" style={{ width: 48, height: 48 }} />
-    </div>
+    <>
+    </>
   );
   // ✅ Loading ke baad — user null check
   if (!user) return null;

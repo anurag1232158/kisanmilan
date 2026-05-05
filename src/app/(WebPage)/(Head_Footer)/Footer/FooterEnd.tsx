@@ -4,10 +4,10 @@ import React from "react";
 const FooterEnd = () => {
   return (
     <div className="row">
-      <div className="col-lg-4 col-md-12">
+      <div className="col-lg-4 col-md-12 fs-log-8">
         <div className="mb-0">
-          <div className="section-title section-title-sm position-relative pb-3 pt-2 mb-4 d-lg-none d-md-none">
-            <h3 className="text-light mb-0">Company Info</h3>
+          <div className="section-title section-title-sm position-relative pt-2 pb-2 pb-lg-3 mb-2 mb-lg-2 d-lg-none d-md-none">
+            <h3 className="text-light  mb-1">Company Info</h3>
           </div>
           <div className="align-items-center d-lg-flex">
             <Link className="text-white border-bottom" href="/">
@@ -17,9 +17,9 @@ const FooterEnd = () => {
           </div>
         </div>
       </div>
-      <div className="col-lg-8 col-md-12">
+      <div className="col-lg-8 col-md-12 fs-log-8">
         <div className="d-flex align-items-center justify-content-end">
-          <p className="mb-0 text-white">
+          <p className=" mb-1 text-white">
             Designed & Developed By:
             <Link className="text-white border-bottom ms-2" href="#">
               🌱 Demo Team

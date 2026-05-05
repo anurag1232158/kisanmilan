@@ -3,27 +3,27 @@ import React from "react";
 
 const FooterTwo = () => {
   return (
-    <div className="col-lg-4 col-md-6 col-sm-6 col-6 pt-lg-5 mb-lg-5 pt-2">
-      <div className="section-title section-title-sm position-relative pb-3 mb-4">
+    <div className="col-lg-4 col-md-6 col-sm-6 col-6 pt-lg-5 mb-lg-3 pt-2 fs-log-8">
+      <div className="section-title section-title-sm position-relative pb-2 pb-lg-3 mb-2 mb-lg-2">
         <h3 className="text-light mb-0">Quick Links</h3>
       </div>
       <div className="link-animated d-flex flex-column justify-content-start">
-        <Link className="text-light mb-2 fw" href="/Product">
+        <Link className="text-light  mb-1 mb-lg-2 fw" href="/Product">
           <i className="fa fa-arrow-right color-orange mx-2"></i> 🛒 Products
         </Link>
-        <Link className="text-light mb-2 fw" href="/Rates">
+        <Link className="text-light  mb-1 mb-lg-2 fw" href="/Rates">
           <i className="fa fa-arrow-right color-orange mx-2"></i> 📊 Mandi Rates
         </Link>
-        <Link className="text-light mb-2 fw" href="/Orders">
+        <Link className="text-light  mb-1 mb-lg-2 fw" href="/Orders">
           <i className="fa fa-arrow-right color-orange mx-2"></i> 📦 My Orders
         </Link>
-        <Link className="text-light mb-2 fw" href="/Dashboard">
+        <Link className="text-light  mb-1 mb-lg-2 fw" href="/Dashboard">
           <i className="fa fa-arrow-right color-orange mx-2"></i> 📊 Dashboard
         </Link>
-        <Link className="text-light mb-2 fw" href="/Profile">
+        <Link className="text-light  mb-1 mb-lg-2 fw" href="/Profile">
           <i className="fa fa-arrow-right color-orange mx-2"></i> 👤 Profile
         </Link>
-        <Link className="text-light mb-2 fw" href="/ProductAdd">
+        <Link className="text-light  mb-1 mb-lg-2 fw" href="/ProductAdd">
           <i className="fa fa-arrow-right color-orange mx-2"></i> ➕ Product Add
         </Link>
       </div>

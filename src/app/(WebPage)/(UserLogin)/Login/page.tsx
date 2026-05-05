@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type FormState = {
   email:    string;
@@ -16,8 +16,13 @@ const ROLE_META: Record<string, { icon: string; label: string; bg: string; text:
   dpartner: { icon: "🚚",  label: "Delivery Partner", bg: "purple",  text: "purple"  },
 };
 
-export default function LoginPage() {
-  const router = useRouter();
+/* ══════════════════════════════════════════
+   ✅ LoginContent — useSearchParams yahan
+══════════════════════════════════════════ */
+function LoginContent() {
+  const router      = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl  = searchParams.get("callbackUrl") || "/";
 
   const [form, setForm]               = useState<FormState>({ email: "", password: "" });
   const [errors, setErrors]           = useState<FieldErrors>({});
@@ -94,7 +99,9 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       window.dispatchEvent(new Event("authChange"));
-      setTimeout(() => router.push("/Dashboard"), 800);
+
+      // ✅ Login ke baad → callbackUrl (ProductDetails) ya home
+      setTimeout(() => router.push(callbackUrl), 800);
 
     } catch {
       setServerError("Server se connect nahi ho pa raha. Internet check karo.");
@@ -157,7 +164,7 @@ export default function LoginPage() {
             </label>
             <input
               className={`form-control rounded-3 ${
-                errors.email          ? "is-invalid" :
+                errors.email              ? "is-invalid" :
                 form.email && !errors.email ? "is-valid"   : ""
               }`}
               type="email"
@@ -220,10 +227,9 @@ export default function LoginPage() {
             disabled={loading || !!detectedRole}
           >
             {loading ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" />
-                Login ho raha hai...
-              </>
+              <div className="spinner-border spinner-border-sm" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
             ) : (
               "🌱 Login Karo"
             )}
@@ -248,5 +254,24 @@ export default function LoginPage() {
 
       </div>
     </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   ✅ Default Export — Suspense wrap karo
+══════════════════════════════════════════ */
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-vh-100 d-flex align-items-center justify-content-center">
+          <div className="spinner-border text-success" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

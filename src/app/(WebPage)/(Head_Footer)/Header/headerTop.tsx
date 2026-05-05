@@ -58,7 +58,8 @@ const HeaderTop = () => {
             </div>
 
             {/* RIGHT */}
-            <div className="col-lg-4 text-center text-lg-end">
+            <div className="col-lg-4 text-center text-lg-end"
+            style={{ transition: "box-shadow 0.2s", zIndex: 9999 }}>
               <div className="d-inline-flex align-items-center gap-2">
 
                 {/* ACCOUNT DROPDOWN */}

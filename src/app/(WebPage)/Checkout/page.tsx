@@ -238,9 +238,9 @@ function CheckoutContent() {
   const stepIndex: Record<string, number> = { address: 0, payment: 1, confirm: 2, success: 3 };
 
   if (loading) return (
-    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
-      <div className="spinner-border text-success" role="status" />
-    </div>
+    <>
+    
+    </>
   );
 
   // ── SUCCESS SCREEN ──

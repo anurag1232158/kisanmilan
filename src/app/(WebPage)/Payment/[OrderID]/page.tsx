@@ -232,8 +232,6 @@ export default function PaymentPage({ params }: { params: Promise<{ OrderID: str
                   disabled={loading}>
                   {loading ? (
                     <>
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      Processing...
                     </>
                   ) : (
                     `✅ Pay ₹${order?.total_price}`

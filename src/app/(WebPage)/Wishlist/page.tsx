@@ -26,7 +26,7 @@ interface WishlistItem {
       location: string;
     } | null;
   };
-}
+} 
 
 export default function WishlistPage() {
   const router = useRouter();
@@ -117,9 +117,9 @@ export default function WishlistPage() {
 
   if (loading)
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
-        <div className="spinner-border text-success" style={{ width: "3rem", height: "3rem" }} />
-      </div>
+      <>
+     
+      </>
     );
 
   return (

@@ -77,7 +77,6 @@ export default function Home() {
     try {
       const token = localStorage.getItem("token");
       const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-
       const [ar, fr, pr, or_, ur] = await Promise.allSettled([
         fetch(`${API}/agent-rates`,  { headers }).then(r => r.json()),
         fetch(`${API}/farmer-rates`, { headers }).then(r => r.json()),
@@ -91,15 +90,11 @@ export default function Home() {
       const prodList   = pr.status  === "fulfilled" && Array.isArray(pr.value)  ? pr.value  : [];
       const orderList  = or_.status === "fulfilled" && Array.isArray(or_.value) ? or_.value : [];
       const userList   = ur.status  === "fulfilled" && Array.isArray(ur.value)  ? ur.value  : [];
-
-      // mandi = agent + farmer mixed with 1.2x markup (same as Rates page)
-      const mixed = [...agentList, ...farmerList].map((r: any) => ({
-        ...r,
+      const mixed = [...agentList, ...farmerList].map((r: any) => ({ ...r,
         name:  r.product_name || r.name,
         price: Math.round(r.price * 1.2),
         _src:  agentList.includes(r) ? "agent" : "farmer",
       }));
-
       setAgentRates(agentList);
       setFarmerRates(farmerList);
       setProducts(prodList);
@@ -214,8 +209,7 @@ export default function Home() {
                 {loading ? [1,2,3,4,5].map(i => <SkelRow key={i} />): heroRates.length === 0
                     ? <p className="text-muted text-center py-3 small">⚠️ Server se data nahi aaya</p>
                     :
-                     mandiSection.slice(0, 5).map((r: any, i: number) => {
-
+                   mandiSection.slice(0, 5).map((r: any, i: number) => {
                    const nm  = r.name || r.product_name || "—";
                    const rawChange = r.change || "0%";
                    const value = parseFloat(rawChange) || 0;
@@ -224,7 +218,7 @@ export default function Home() {
                    const src = r._src || "agent";
                    const dn = type === "down";
                    const chg = rawChange === "0%" ? null : rawChange;
-                        return (
+                  return (
                     <div key={i} className="km-rate-row">
                     <span className="km-rate-name">{getIcon(r.category)} {nm}</span>
                     {r.type && ( <span className="km-best-type-badge"> 🏅 {r.type} </span> )}
@@ -256,7 +250,7 @@ export default function Home() {
         </div>
         <div className="km-ticker-track">
           {loading ? (
-            <span className="px-3 small" style={{ color: "rgba(255,255,255,.6)" }}>Loading...</span>
+            <span className="px-3 small" style={{ color: "rgba(255,255,255,.6)" }}></span>
           ) : tickerItems.length === 0 ? (
             <span className="px-3 small" style={{ color: "rgba(255,255,255,.6)" }}>Koi rate available nahi</span>
           ) : (
@@ -266,7 +260,7 @@ export default function Home() {
                 return (
                   <div key={i} className="km-ticker-item">
                     <span className="tn fs-6">{r.name}</span>
-                 <span className="tp">₹{r.price} <span className="m-0 p-0 fs-9 text-warning"> per/{(r as any).unit || "kg"}</span></span>
+                     <span className="tp">₹{r.price} <span className="m-0 p-0 fs-9 text-warning"> per/{(r as any).unit || "kg"}</span></span>
                     {r.change && r.change !== "0%" && (
                       <span className={dn ? "tc-dn" : "tc-up"}>{dn ? "▼" : "▲"} {r.change}</span>
                     )}
@@ -325,13 +319,11 @@ export default function Home() {
       {/* ══════ MANDI BHAV (Dynamic) ══════ */}
        <section className="py-5 bg-km-light">
         <div className="container">
-
         <h2 className="km-section-title text-center">Aaj Ke Mandi Bhav</h2>
-           <p className="km-section-sub text-center mt-1 mb-5">
-           {TODAY} — Live Updated · Agent + Farmer Rates
-             </p>
-
-              {loading ? (
+        <p className="km-section-sub text-center mt-1 mb-5">
+          {TODAY} — Live Updated Seedha Aapke Phone Par. Koi Beechiya Nahi, Sirf Sahi Daam.
+           </p>
+          {loading ? (
         <div className="row g-3">
         {[1,2,3,4,5,6,7,8].map(i => (
           <div key={i} className="col-6 col-md-4 col-lg-3">
@@ -343,15 +335,11 @@ export default function Home() {
           </div>
         ))}
         </div>
-
          ) : mandiSection.length === 0 ? (
-
          <p className="text-center text-muted py-4">
         ⚠️ Backend se data nahi aaya. Server check karo.
         </p>
-
         ) : (
-
         <div className="row g-3">
         {mandiSection.map((r: any, i: number) => {
           const nm  = r.name || r.product_name || "—";
@@ -375,9 +363,7 @@ export default function Home() {
                       per/{r.unit || "kg"}
                     </span>
                     </div>
-                  
                   </div>
-
                   <div className="d-flex flex-column align-items-end gap-1">
                     <span className="km-mandi-icon">{getIcon(r.category)}</span>
                     <span className={`km-src-badge ${  src === "agent" ? "km-src-agent" : "km-src-farmer" }`}>
@@ -408,8 +394,6 @@ export default function Home() {
                     ${type === "neutral" ? "bg-warning" : ""}`}>
                       {/* up color green down neutral neutral color red */}
                       {type === "up" ? "▲" : type === "down" ? "▼" : "•"} {rawChange}
-
-                    
                     {/* {type === "up" ? "▲" : type === "down" ? "▼" : "•"} {rawChange} */}
                   </span>
 
@@ -418,25 +402,22 @@ export default function Home() {
                       📦 {r.stock} {r.unit || "kg"}
                     </span>
                   ) : null}
-
                 </div>
-      
               </div>
-
             </div>
           );
         })}
         </div>
          )}
 
-          <div className="text-center mt-4">
+        <div className="text-center mt-4">
           <Link href="/Rates" className="btn btn-lg px-4 py-2 btn-km-gold">
           Sab Mandi Bhav Dekhen →
          </Link>
             </div>
         </div>
        </section>
-
+      
       {/* ══════ FEATURED PRODUCTS (Dynamic) ══════ */}
       {(loading || featuredProds.length > 0) && (
         <section className="py-5 bg-white">
@@ -471,7 +452,7 @@ export default function Home() {
                   return (
                     <div key={p._id} className="col-6 col-md-4 col-lg-3">
                       <div className="km-prod-card rounded-4 overflow-hidden bg-white">
-                        <Link href={`/ProductView/${p._id}`} className="km-prod-link">
+                        <Link href={`/ProductDetails/${p._id}`} className="km-prod-link">
                         <img src={img} alt={nm} className="km-prod-img"
                           onError={e => { (e.target as HTMLImageElement).src =
                          `https://placehold.co/400x200/e8f5e9/198754?text=${encodeURIComponent(nm)}`; }}
@@ -489,23 +470,31 @@ export default function Home() {
                             ₹{p.price}
                             <span className="km-prod-unit"> /{p.unit || "kg"}</span>
                           </div>
-                          <div className="km-prod-meta mt-1">
-                            {p.location && <span>📍 {p.location} · </span>}
+                          <div className="km-prod-meta my-2">
+                            {p.location && <span>📍 {p.location ? p.location.slice(0, 10) : "."}. </span>}
                             <span>📦 {p.stock} {p.unit || "kg"}</span>
                             {p.farmer_name && (
                               <div className="mt-1">👨‍🌾 {p.farmer_name}</div>
                             )}
                           </div>
-                                                 {!user && (
-            <button className="btn btn-outline-success btn-sm w-100 mb-2 mt-4"  onClick={() => router.push("/Login")}>
-              🔐 Login to Order
-            </button>
-          )}
-                        </div>
-                     
-      
+
+                        {/* ── Not Logged In → Login with Redirect ── */}
+                        {!user && (
+                         <Link href={`/Login?callbackUrl=/ProductDetails/${p._id}`}
+                         onClick={(e) => { const confirmLogin = confirm("Login required. Do you want to login?"); if (!confirmLogin) e.preventDefault(); }}
+                         className="btn btn-outline-secondary btn-sm flex-grow-1 w-100">
+                         Order Now
+                         </Link>
+                        )}
+
+                        {/* ── Logged In → Direct Product Details ── */}
+                        {user && (
+                         <Link href={`/ProductDetails/${p._id}`} className="btn btn-primary btn-sm flex-grow-1 w-100">
+                         Order Now
+                         </Link>
+                        )}
                       </div>
-                      
+                     </div>
                     </div>
                   );
                 })}
@@ -514,7 +503,7 @@ export default function Home() {
 
             {products.filter((p: any) => p.is_available !== false && Number(p.stock) > 0).length > 4 && (
               <div className="text-center mt-4">
-                <Link href="/Products" className="btn btn-lg px-4 py-2 btn-km-gold">
+                <Link href="/Product" className="btn btn-lg px-4 py-2 btn-km-gold">
                   Sab Products Dekhen →
                 </Link>
               </div>

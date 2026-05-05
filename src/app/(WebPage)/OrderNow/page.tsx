@@ -282,7 +282,7 @@ function OrderNowContent() {
                   <button className="btn btn-success flex-fill fw-semibold rounded-3"
                     onClick={handleSubmit} disabled={loading}>
                     {loading
-                      ? <><span className="spinner-border spinner-border-sm me-2" />Processing...</>
+                      ? <></>
                       : `✅ Pay ₹${totalPrice}`}
                   </button>
                 </div>

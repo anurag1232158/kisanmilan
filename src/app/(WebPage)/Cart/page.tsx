@@ -89,9 +89,8 @@ export default function CartPage() {
   const savings = 0; // Can add discount logic here
   if (loading)
     return (
-      <div className="d-flex justify-content-center align-items-center"  style={{ minHeight: "80vh" }} >
-        <div className="spinner-border text-success" role="status" />
-      </div>
+      <>
+      </>
     );
 
   return (

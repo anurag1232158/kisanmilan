@@ -214,9 +214,8 @@ export default function ProductDetail({params}: {params: Promise<{id: string}>})
 
     if (loading)
         return (
-            <div className="d-flex justify-content-center align-items-center" style={{minHeight: "80vh"}}>
-                <div className="spinner-border text-success" role="status" style={{width: "3rem", height: "3rem"}} />
-            </div>
+            <>
+            </>
         );
 
     if (!product)

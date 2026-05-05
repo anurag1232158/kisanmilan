@@ -92,9 +92,8 @@ export default function EditProduct({ params }: any) {
 
   if (loading)
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "60vh" }}>
-       <div className="spinner-border text-success" />
-      </div>
+      <>
+      </>
     );
 
   return (
@@ -125,10 +124,8 @@ export default function EditProduct({ params }: any) {
                   <label className="btn btn-outline-success w-100"  htmlFor="editImg"> 📷 Change Photo</label>
                   <input type="file" id="editImg" className="d-none" onChange={(e) => {   if (e.target.files?.[0]) uploadImage(e.target.files[0]); }} />
                   {uploading && (
-                    <div className="mt-2 text-center">
-                      <span className="spinner-border spinner-border-sm text-success" />
-                      <span className="small text-muted ms-2">  Uploading... </span>
-                    </div>
+                    <>
+                    </>
                   )}
                   {/* Availability toggle */}
                   <div className={`mt-3 p-3 rounded-3 border ${form.is_available ? "border-success bg-success bg-opacity-10" : "border-danger bg-danger bg-opacity-10"}`} >

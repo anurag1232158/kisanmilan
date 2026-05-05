@@ -512,7 +512,7 @@ export default function RegisterPage() {
                   className="btn w-100 py-2 fw-semibold"
                   style={{ background: loading ? "#d1d5db" : activeColor, border: "none", color: "white", borderRadius: 10, fontSize: 15 }}>
                   {loading ? (
-                    <><span className="spinner-border spinner-border-sm me-2" />Registering...</>
+                    <></>
                   ) : (
                     <>
                       {form.role === "buyer"    && "🛍️ Buyer Register Karo"}
