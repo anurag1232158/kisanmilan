@@ -5,7 +5,6 @@ import Link from "next/link";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-
 const API = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export default function ProductDetail({params}: {params: Promise<{id: string}>}) {
@@ -247,14 +246,14 @@ export default function ProductDetail({params}: {params: Promise<{id: string}>})
     };
 
   const sliderSettings = {
-  dots: false,
-  infinite: true,
-  speed: 500,
-  slidesToShow: getSlidesToShow(similar.length),
-  slidesToScroll: 1,
-  autoplay: true, 
-  autoplaySpeed: 1000,
-  responsive: [
+   dots: false,
+   infinite: true,
+   speed: 500,
+   slidesToShow: getSlidesToShow(similar.length),
+   slidesToScroll: 1,
+   autoplay: true, 
+   autoplaySpeed: 1000,
+   responsive: [
     {
       breakpoint: 1024,
       settings: { slidesToShow: Math.min(similar.length, 3), infinite: true, autoplay: true },
@@ -267,17 +266,18 @@ export default function ProductDetail({params}: {params: Promise<{id: string}>})
       breakpoint: 480,
       settings: { slidesToShow: 1, infinite: true, autoplay: true },
     },
-  ],
-    };
+    ],
+ };
 
     return (
           <div className="bg-light py-4 pt-2 ">
-                 <div className="container-fluid">
+             <div className="container-fluid">
                 {/* Header */}
-                <div className="d-flex justify-content-between align-items-center mb-3 p-3 bg-success text-white rounded-3 shadow-sm">
-                    <div className=""> <h5 className="mb-0 fw-bold text-white">🌾 Product Details</h5>
-                        <small className="opacity-75">Full product information</small>
+                <div className="row d-flex justify-content-between align-items-center mb-3 p-3 px-lg-5 px-2 bg-success text-white rounded-3 shadow-sm">
+                    <div className="col-lg-6 col-12"> <h5 className="mb-0 fw-bold text-white">🌾 Product Details</h5>
+                      <small className="opacity-75 px-4">Full product information</small>
                     </div>
+                    <div className="col-lg-6 col-12 d-flex justify-content-lg-end justify-content-start align-items-center gap-3 mt-2 mt-lg-0">
                     <nav className="d-flex align-items-center gap-1 fs-6">
                      <Link href="/Product" className="text-warning fw-bold text-decoration-underline"> Products </Link>
                         {product.category && <span className="text-white-50">/ {product.category}</span>}
@@ -285,90 +285,48 @@ export default function ProductDetail({params}: {params: Promise<{id: string}>})
                          / {product.product_name}
                         </span>
                     </nav>
+                      <button className="btn btn-light btn-sm" onClick={() => router.back()}>← Back</button>
+                    </div>
                 </div>
               
           <div className="container">
             {toast && ( <div className={`position-fixed top-0 end-0 m-3 alert alert-${  toast.type === "success" ? "success" : "danger"
             } shadow d-flex align-items-center gap-2`}
               style={{zIndex: 9999, minWidth: 280, borderRadius: 12,}}>
-                <span>{toast.msg}</span>
-                 <button className="btn-close ms-auto" style={{fontSize: 10}} onClick={() => setToast(null)} />
+              <span>{toast.msg}</span>
+              <button className="btn-close ms-auto" style={{fontSize: 10}} onClick={() => setToast(null)} />
              </div>
             )}
-       
-
                 <div className="row g-4">
                     <div className="col-lg-5">
                         <div className="card border-0 shadow-sm p-3" style={{borderRadius: 16}}>
-                            <div
-                                className="position-relative overflow-hidden mb-3"
-                                style={{borderRadius: 12, background: "#f8f9fa", minHeight: 280}}
-                            >
-                                <img
-                                    src={activeImg || "https://placehold.co/500x400"}
-                                    alt={product.product_name}
-                                    className="w-75 mx-auto d-block my-3"
-                                    style={{
-                                        objectFit: "cover",
-                                        borderRadius: 12,
-                                        transition: "transform 0.3s",
-                                        cursor: "zoom-in",
-                                    }}
+                            <div className="position-relative overflow-hidden mb-3" style={{borderRadius: 12, background: "#f8f9fa", minHeight: 280}}>
+                                <img src={activeImg || "https://placehold.co/500x400"}
+                                    alt={product.product_name} className="w-75 mx-auto d-block my-3"
+                                    style={{ objectFit: "cover",  borderRadius: 12,  transition: "transform 0.3s",  cursor: "zoom-in", }}
                                     onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.04)")}
-                                    onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                                />
+                                    onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}/>
 
-                                <button
-                                    onClick={toggleWishlist}
-                                    disabled={wishlistLoading}
+                                <button onClick={toggleWishlist} disabled={wishlistLoading}
                                     className="position-absolute btn btn-light shadow-sm d-flex align-items-center justify-content-center"
-                                    style={{
-                                        top: 12,
-                                        right: 12,
-                                        borderRadius: "50%",
-                                        width: 40,
-                                        height: 40,
-                                        padding: 0,
-                                        fontSize: 18,
-                                    }}
-                                    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                                >
+                                    style={{ top: 12, right: 12, borderRadius: "50%", width: 40, height: 40, padding: 0, fontSize: 18,}}
+                                    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"} >
                                     {wishlistLoading ? (
-                                        <span className="spinner-border spinner-border-sm" style={{color: "#198754"}} />
-                                    ) : isWishlisted ? (
-                                        "❤️"
-                                    ) : (
-                                        "🤍"
+                                    <span className="spinner-border spinner-border-sm" style={{color: "#198754"}} />
+                                    ) : isWishlisted ? ( "❤️"
+                                    ) : ( "🤍"
                                     )}
                                 </button>
 
                                 {isOutOfStock && (
-                                    <span
-                                        className="position-absolute badge bg-danger"
-                                        style={{top: 12, left: 12, fontSize: 12, borderRadius: 8}}
-                                    >
-                                        Out of Stock
-                                    </span>
+                                 <span className="position-absolute badge bg-danger" style={{top: 12, left: 12, fontSize: 12, borderRadius: 8}}> Out of Stock </span>
                                 )}
                             </div>
                             {allImages.length > 1 && (
-                                <div className="d-flex gap-2 flex-wrap mt-1">
-                                    {allImages.map((img: string, i: number) => (
-                                        <img
-                                            key={i}
-                                            src={img}
-                                            onClick={() => setActiveImg(img)}
-                                            alt={`thumb-${i}`}
-                                            style={{
-                                                width: 64,
-                                                height: 64,
-                                                objectFit: "cover",
-                                                borderRadius: 10,
-                                                cursor: "pointer",
-                                                border: activeImg === img ? "2.5px solid #198754" : "2px solid #e9ecef",
-                                                transition: "border-color 0.2s",
-                                            }}
-                                        />
+                              <div className="d-flex gap-2 flex-wrap mt-1">
+                                 {allImages.map((img: string, i: number) => (
+                                    <img key={i} src={img} onClick={() => setActiveImg(img)} alt={`thumb-${i}`}
+                                    style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 10, cursor: "pointer", border: activeImg === img ? "2.5px solid #198754" : "2px solid #e9ecef", transition: "border-color 0.2s", }} />
                                     ))}
                                 </div>
                             )}
@@ -473,7 +431,7 @@ export default function ProductDetail({params}: {params: Promise<{id: string}>})
 
   <div className="px-4 py-3">
   <div className="row">
-  <div className="col-6">
+  <div className="col-lg-6 col-12">
     {/* ✍️ Review Form */}
     {canReview && (
       <div className="mb-4 p-3 rounded-3 bg-white border">
@@ -509,7 +467,7 @@ export default function ProductDetail({params}: {params: Promise<{id: string}>})
       </div>
     )}
   </div>
-  <div className="col-6">
+  <div className="col-lg-6 col-12">
     {/* 📦 Reviews List with Scroll */}
     {reviews.length === 0 ? (
       <div className="text-center py-4 text-muted"> No reviews yet </div>
